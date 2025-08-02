@@ -1,0 +1,238 @@
+---
+import videos from '../../data/videos_metadata.json' assert { type: 'json' };
+import { createSlug } from '../../utils/slug';
+import type { Astro } from 'astro';
+
+interface SeoInfo {
+  seo_title: string;
+  seo_description: string;
+}
+
+interface VideoInfo {
+  video_id: string;
+  title: string;
+  description: string;
+  channel_title: string;
+  published_at: string;
+  view_count: string;
+  thumbnail_file: string;
+}
+
+interface Props {
+  video: VideoInfo;
+  seoData: SeoInfo | null;
+}
+
+export async function getStaticPaths() {
+  const paths = [];
+
+  for (const video of videos) {
+    let seoData: SeoInfo | null = null;
+    try {
+      const seoModule = await import(`../../data/sumarios_seo/${video.video_id}.json`);
+      seoData = seoModule.default;
+    } catch {
+      console.warn(`SEO file missing for video: ${video.video_id}`);
+    }
+
+    const videoSlug = `${video.video_id}-${createSlug(video.title)}`;
+
+    paths.push({
+      params: { videoSlug },
+      props: { video, seoData },
+    });
+  }
+
+  return paths;
+}
+
+const { video, seoData } = Astro.props;
+
+const pageTitle = seoData?.seo_title || video.title;
+const pageDescription = seoData?.seo_description || video.description;
+
+const pageDescriptionParsed = pageDescription
+  .replace(/\*\*(.*?)\*\*/g, '$1') // remove **bold**
+  .replace(/\*(.*?)\*/g, '$1') // remove *italic*
+  .replace(/\.\s*/g, '.\n'); // add newline after period
+
+const youtubeWatchUrl = `https://www.youtube.com/watch?v=${video.video_id}`;
+
+const dateObj = new Date(video.published_at);
+const formattedDate = dateObj.toLocaleString('en-US', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+---
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={pageDescription} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- //TODO: WE NEED TO DOWNLOAD THE ROBOTO FONT FILE! -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --color-primary: #ff0000;
+        --color-bg: #1a1a1a;
+        --color-text: #fff;
+        --color-border: #444;
+      }
+
+      html {
+        font-family: 'Roboto', system-ui, sans-serif;
+        background-color: var(--color-bg);
+        color: var(--color-text);
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      main.container {
+        max-width: 700px;
+        margin: auto;
+        padding: 2rem;
+      }
+
+      h1,
+      h2,
+      h3 {
+        font-weight: 700;
+        color: var(--color-text);
+      }
+
+      p {
+        font-weight: 400;
+      }
+
+      img.thumbnail {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto 1.5rem auto;
+        border-radius: 8px;
+      }
+
+      .buttons-container {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      @media (max-width: 640px) {
+        .buttons-container {
+          flex-direction: column;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        button.btn {
+          width: 100%;
+          max-width: 300px;
+          font-size: 1.25rem;
+          padding: 0.75rem 1rem;
+        }
+
+        a.btn {
+          width: auto;
+          max-width: 250px;
+          font-size: 1rem;
+          padding: 0.75rem 1rem;
+          align-self: center;
+        }
+      }
+
+      a.btn,
+      button.btn {
+        font-weight: 700;
+        border-radius: 8px;
+        font-size: 1.5rem;
+        padding: 0.75rem 2rem;
+        min-width: 180px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        color: #fff;
+        border: none;
+        font-family: 'Roboto', sans-serif;
+        transition: background-color 0.3s ease;
+      }
+
+      a.btn {
+        background-color: var(--color-primary);
+      }
+
+      a.btn:hover {
+        background-color: #cc0000;
+      }
+
+      button.btn {
+        background-color: #444;
+      }
+
+      button.btn:hover {
+        background-color: #222;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <h1 style="text-align: center;">{pageTitle}</h1>
+      <p style="text-align: center;">By {video.channel_title}</p>
+
+      <p style="text-align: center; font-size: 0.95rem; color: #ccc;">
+        👁️ {video.view_count} views · 🗓️ {formattedDate}
+      </p>
+
+      <img
+        src={video.thumbnail_file}
+        alt={video.title}
+        class="thumbnail"
+      />
+
+      <div class="buttons-container">
+        <a
+          href={youtubeWatchUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn"
+          aria-label="Watch this video on YouTube"
+        >
+          Watch on YouTube
+        </a>
+
+        <button
+          class="btn"
+          onclick="
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              window.location.href = '/';
+            }
+          "
+          aria-label="Go back to the previous page or return to the home page"
+        >
+          Back
+        </button>
+      </div>
+
+      <p style="white-space: pre-line;">{pageDescriptionParsed}</p>
+    </main>
+  </body>
+</html>

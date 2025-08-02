@@ -1,0 +1,16 @@
+{
+  "name": "youtube-pvfetcher",
+  "type": "module",
+  "version": "0.0.2",
+  "description": "A simple Astro project to fetch and display popular YouTube videos with AI-generated descriptions.",
+  "author": "AESMatias",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "^5.12.8"
+  }
+}

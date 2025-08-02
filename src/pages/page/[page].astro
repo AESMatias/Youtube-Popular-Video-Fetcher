@@ -1,0 +1,172 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import VideoCard, { type VideoInfo, type SeoInfo } from '../../components/VideoCard.astro';
+import videosMetadata from '../../data/videos_metadata.json';
+import '../../styles/video-card.css';
+
+const PAGE_SIZE = 100;
+const pageNum = parseInt(Astro.params.page);
+
+if (isNaN(pageNum) || pageNum < 1) {
+  throw new Error('Invalid page number');
+}
+
+const startIndex = (pageNum - 1) * PAGE_SIZE;
+const endIndex = startIndex + PAGE_SIZE;
+const videosPage = videosMetadata.slice(startIndex, endIndex);
+
+const allVideoData: (VideoInfo & { seo?: SeoInfo })[] = [];
+
+for (const video of videosPage) {
+  try {
+    const seoFilePath = `../../data/sumarios_seo/${video.video_id}.json`;
+    const seoData = await import(seoFilePath); // Asynchronously import SEO data
+    allVideoData.push({ ...video, seo: seoData.default });
+  } catch {
+    allVideoData.push(video);
+  }
+}
+
+const pageDescription = `Page ${pageNum} of popular videos with AI-enhanced descriptions.`;
+export async function getStaticPaths() {
+  const PAGE_SIZE = 60;
+  const totalPages = Math.ceil(videosMetadata.length / PAGE_SIZE);
+
+  const paths = [];
+
+  for (let i = 1; i <= totalPages; i++) {
+    paths.push({ params: { page: i.toString() } });
+  }
+
+  return paths;
+}
+---
+
+<Layout title={`Popular Videos - Page ${pageNum}`} description={pageDescription}>
+  <main>
+    <h1>Popular Videos - Page {pageNum}</h1>
+    <section class="video-grid">
+      {allVideoData.map((video) => (
+        <VideoCard
+          video={video}
+          seo={video.seo || { seo_title: video.title, seo_description: video.description || '' }}
+        />
+      ))}
+    </section>
+
+    <nav style="text-align:center; margin-top: 2rem;">
+      {pageNum > 1 && <a href={pageNum === 2 ? '/' : `/page/${pageNum - 1}`} class="pagination-link">← Previous</a>}
+      {endIndex < videosMetadata.length && (
+        <a href={`/page/${pageNum + 1}`} class="pagination-link" style="margin-left: 1rem;">
+          Next →  to {pageNum + 1}/{Math.ceil(videosMetadata.length / PAGE_SIZE)}
+        </a>
+      )}
+    </nav>
+  </main>
+</Layout>
+
+<style>
+  .video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 25px;
+    justify-content: center;
+  }
+
+  .pagination-link {
+    font-weight: 800;
+    font-size: 1rem;
+    text-decoration: none;
+    color: var(--color-primary);
+  }
+
+  main {
+    width: 80%;
+    margin: 0 auto;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  h1 {
+    text-align: center;
+    margin-bottom: 15px;
+    font-size: 2.8rem;
+    color: var(--color-primary);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    margin-bottom: 30px;
+  }
+
+  .subtitle {
+    text-align: center;
+    font-size: 1.1rem;
+    color: #ccc;
+    margin-bottom: 40px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+  }
+
+  @media (min-width: 1920px) {
+    main {
+      max-width: 1800px;
+      padding: 20px;
+    }
+    .video-grid {
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    }
+  }
+  @media (max-width: 1600px) {
+    main {
+      padding: 20px;
+    }
+    .video-grid {
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    }
+  }
+  @media (max-width: 1200px) {
+    main {
+      padding: 20px;
+    }
+    .video-grid {
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+  }
+  @media (max-width: 1024px) {
+    main {
+      padding: 15px;
+    }
+    .video-grid {
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+    }
+  }
+  @media (max-width: 768px) {
+    main {
+      padding: 10px;
+    }
+    h1 {
+      font-size: 2rem;
+    }
+    .subtitle {
+      font-size: 1rem;
+      margin-bottom: 30px;
+    }
+    .video-grid {
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+  }
+  @media (max-width: 480px) {
+    main {
+      padding: 10px;
+    }
+    h1 {
+      font-size: 1.8rem;
+    }
+    .video-grid {
+      grid-template-columns: 1fr;
+      gap: 15px;
+    }
+  }
+</style>

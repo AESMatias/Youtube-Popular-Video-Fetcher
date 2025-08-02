@@ -1,0 +1,276 @@
+---
+import { createSlug } from '../utils/slug';
+
+export interface VideoInfo {
+  video_id: string;
+  title: string;
+  description: string;
+  channel_title: string;
+  published_at: string;
+  view_count: string;
+  like_count: string;
+  comment_count: string;
+  duration: string;
+  youtube_url: string; // Remember, if there is not thumbnail_file, this will be used
+  thumbnail_file: string;
+  thumbnails: {
+    default?: { url: string };
+    medium?: { url: string };
+    high?: { url: string };
+    standard?: { url: string };
+    maxres?: { url: string };
+  };
+  transcript: string | null;
+  comments: string[];
+}
+
+export interface SeoInfo {
+  seo_title: string;
+  seo_description: string;
+}
+
+export interface Props {
+  video: VideoInfo;
+  seo: SeoInfo;
+}
+
+const { video, seo } = Astro.props;
+
+const descriptionToShow = seo.seo_description || video.description;
+const thumbnailForBase = video.thumbnail_file; 
+
+const detailPageUrl = `/videos/${video.video_id}-${createSlug(video.title)}`;
+const youtubeLink = `https://www.youtube.com/watch?v=${video.video_id}`;
+---
+
+<div class="video-card-wrapper">
+  <div class="video-card" data-video-id={video.video_id}>
+    <a href={detailPageUrl} class="thumbnail-link">
+      <div class="thumbnail-wrapper">
+        <img
+          src={thumbnailForBase}
+          alt={`Thumbnail de ${video.title}`}
+          width="480" height="270"
+          loading="lazy"
+          decoding="async"
+          class="thumbnail-base"
+        />
+        {video.thumbnail_file && (
+          <img
+            src={video.thumbnail_file}
+            alt={`Hover thumbnail de ${video.title}`}
+            width="480" height="270"
+            loading="lazy"
+            decoding="async"
+            class="thumbnail-hover"
+            aria-hidden="true"
+          />
+        )}
+      </div>
+    </a>
+
+    <div class="video-info">
+      <a href={detailPageUrl} class="title-link">
+        <h3>{video.title}</h3>
+      </a>
+      <p class="channel-info">{video.channel_title}</p>
+
+      <div class="description-area">
+        <!-- <p class="description-short">{shortDescription}</p> -->
+        <p class="description-full">{descriptionToShow}</p>
+      </div>
+
+      <a href={youtubeLink} target="_blank" rel="noopener noreferrer" class="youtube-button-link">
+        <button style="background-color: #FF0000; color: white; border: none; padding: 10px 20px; 
+        border-radius: 5px; font-size: .9rem; font-weight: 900;">
+          Watch on YouTube
+        </button>
+      </a>
+    </div>
+  </div>
+</div>
+
+<style>
+  .video-card-wrapper {
+    position: relative;
+    width: 100%;
+    height: 300px;
+  }
+
+  .video-card {
+    background-color: var(--color-card-bg);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    border: 1px solid transparent;
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    transition: transform 0.1s ease, box-shadow 0.1s ease, height 0.1s ease-in-out, z-index 0s 0.1s, border-color 0.1s ease;
+  }
+
+  .thumbnail-link {
+    display: block;
+    width: 100%;
+    height: 175px;
+  }
+
+  .thumbnail-wrapper {
+    width: 100%;
+    height: 180px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .thumbnail-base {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transition: transform 0.1s ease;
+  }
+
+  .video-info {
+    padding: 10px 15px 35px 15px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow: hidden;
+    gap: 0.1rem;
+  }
+
+  .title-link {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  h3 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    max-height: 2.8em;
+    margin: 5px;
+  }
+
+  h3:hover {
+    -webkit-line-clamp: 1;
+  }
+
+  .title-link:hover h3 {
+    text-decoration: underline;
+  }
+
+  .channel-info {
+    font-size: 0.8rem;
+    color: #aaaaaa;
+    margin: 0;
+    margin-left: 5px;
+  }
+
+  .description-area {
+    position: relative;
+    flex-grow: 1;
+    overflow: hidden;
+  }
+
+  .description-full {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    font-size: 0.8rem;
+    color: #ccc;
+    line-height: 1;
+    max-height: 150px;
+    transition: opacity 0.3s ease;
+  }
+
+  .youtube-button-link {
+    margin-top: auto;
+    align-self: center;
+    display: block;
+    width: fit-content;
+  }
+
+  .youtube-button-link button {
+    padding: 10px 20px;
+    background-color: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+  }
+
+  .youtube-button-link button:hover {
+    background-color: #cc0000;
+  }
+
+  /* DESKTOP-ONLY */
+  @media (hover: hover) and (min-width: 768px) {
+    .video-card-wrapper .video-card {
+      transform: none;
+      box-shadow: none;
+      border-color: transparent;
+      min-height: initial;
+      min-width: initial;
+      z-index: 1;
+      overflow: hidden;
+      transition: none;
+    }
+
+    .video-card-wrapper:hover .video-card {
+      transform: translateY(-5px) scale(1.2);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      border: 0.5px solid #c5c5c575;
+      min-height: 400px;
+      min-width: 350px;
+      z-index: 10;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.5s ease;
+    }
+
+    .video-card-wrapper .thumbnail-base {
+      transition: transform 0.2s ease;
+    }
+
+    .video-card-wrapper:hover .thumbnail-base {
+      transform: scale(1.1);
+    }
+
+    .video-card-wrapper:hover .stats {
+      display: block;
+      opacity: 1;
+      transition: opacity 0.2s ease 0.1s;
+    }
+
+    .video-card-wrapper .stats {
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .video-card-wrapper .description-full {
+      opacity: 0;
+      display: none;
+      transition: none;
+    }
+
+    .video-card-wrapper:hover .description-full {
+      opacity: 1;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      transition: opacity 0.2s ease;
+    }
+  }
+</style>

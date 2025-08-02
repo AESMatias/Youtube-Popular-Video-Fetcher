@@ -1,0 +1,74 @@
+---
+import type { Astro } from 'astro';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = "Discover the most popular YouTube videos in the world." } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<!-- //TODO: WE NEED TO DOWNLOAD THE ROBOTO FONT FILE! -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
+<style is:global>
+  :root {
+    --color-primary: #ff0000;
+    --color-bg: #1a1a1a;
+    --color-text: #ffffff;
+    --color-card-bg: #282828;
+    --color-border: #444;
+  }
+  html {
+    font-family: 'Roboto', system-ui, sans-serif;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+  }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  h1, h2, h3 {
+    color: var(--color-text);
+    font-weight: 700;
+  }
+  p {
+    font-weight: 400;
+  }
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+  button {
+    background-color: var(--color-primary);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+    font-family: 'Roboto', sans-serif;
+  }
+  button:hover {
+    background-color: #cc0000;
+  }
+</style>
