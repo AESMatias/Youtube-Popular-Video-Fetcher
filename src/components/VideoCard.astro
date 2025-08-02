@@ -37,7 +37,9 @@ export interface Props {
 const { video, seo } = Astro.props;
 
 const descriptionToShow = seo.seo_description || video.description;
-const thumbnailForBase = video.thumbnail_file; 
+const thumbnailForBase = video.thumbnail_file || video.thumbnails?.maxres?.url ||
+ video.thumbnails?.standard?.url || video.thumbnails?.high?.url ||
+ video.thumbnails?.medium?.url || video.thumbnails?.default?.url;
 
 const detailPageUrl = `/videos/${video.video_id}-${createSlug(video.title)}`;
 const youtubeLink = `https://www.youtube.com/watch?v=${video.video_id}`;

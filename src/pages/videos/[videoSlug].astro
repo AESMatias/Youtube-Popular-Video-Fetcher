@@ -3,19 +3,32 @@ import videos from '../../data/videos_metadata.json' assert { type: 'json' };
 import { createSlug } from '../../utils/slug';
 import type { Astro } from 'astro';
 
-interface SeoInfo {
+export interface SeoInfo {
   seo_title: string;
   seo_description: string;
 }
 
-interface VideoInfo {
+export interface VideoInfo {
   video_id: string;
   title: string;
   description: string;
   channel_title: string;
   published_at: string;
   view_count: string;
+  like_count: string;
+  comment_count: string;
+  duration: string;
+  youtube_url: string;
   thumbnail_file: string;
+  thumbnails: {
+    default?: { url: string };
+    medium?: { url: string };
+    high?: { url: string };
+    standard?: { url: string };
+    maxres?: { url: string };
+  };
+  transcript: string | null;
+  comments: string[];
 }
 
 interface Props {
@@ -52,9 +65,9 @@ const pageTitle = seoData?.seo_title || video.title;
 const pageDescription = seoData?.seo_description || video.description;
 
 const pageDescriptionParsed = pageDescription
-  .replace(/\*\*(.*?)\*\*/g, '$1') // remove **bold**
-  .replace(/\*(.*?)\*/g, '$1') // remove *italic*
-  .replace(/\.\s*/g, '.\n'); // add newline after period
+  .replace(/\*\*(.*?)\*\*/g, '$1')
+  .replace(/\*(.*?)\*/g, '$1')
+  .replace(/\.\s*/g, '.\n');
 
 const youtubeWatchUrl = `https://www.youtube.com/watch?v=${video.video_id}`;
 
@@ -63,6 +76,8 @@ const formattedDate = dateObj.toLocaleString('en-US', {
   dateStyle: 'medium',
   timeStyle: 'short',
 });
+
+const thumbnailSrc = video.thumbnails?.maxres?.url || video.thumbnail_file;
 ---
 
 <!DOCTYPE html>
@@ -75,11 +90,7 @@ const formattedDate = dateObj.toLocaleString('en-US', {
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- //TODO: WE NEED TO DOWNLOAD THE ROBOTO FONT FILE! -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
     <style>
       :root {
         --color-primary: #ff0000;
@@ -107,9 +118,7 @@ const formattedDate = dateObj.toLocaleString('en-US', {
         padding: 2rem;
       }
 
-      h1,
-      h2,
-      h3 {
+      h1, h2, h3 {
         font-weight: 700;
         color: var(--color-text);
       }
@@ -156,8 +165,7 @@ const formattedDate = dateObj.toLocaleString('en-US', {
         }
       }
 
-      a.btn,
-      button.btn {
+      a.btn, button.btn {
         font-weight: 700;
         border-radius: 8px;
         font-size: 1.5rem;
@@ -195,16 +203,11 @@ const formattedDate = dateObj.toLocaleString('en-US', {
     <main class="container">
       <h1 style="text-align: center;">{pageTitle}</h1>
       <p style="text-align: center;">By {video.channel_title}</p>
-
       <p style="text-align: center; font-size: 0.95rem; color: #ccc;">
         👁️ {video.view_count} views · 🗓️ {formattedDate}
       </p>
 
-      <img
-        src={video.thumbnail_file}
-        alt={video.title}
-        class="thumbnail"
-      />
+      <img src={thumbnailSrc} alt={video.title} class="thumbnail" />
 
       <div class="buttons-container">
         <a
@@ -226,7 +229,6 @@ const formattedDate = dateObj.toLocaleString('en-US', {
               window.location.href = '/';
             }
           "
-          aria-label="Go back to the previous page or return to the home page"
         >
           Back
         </button>
