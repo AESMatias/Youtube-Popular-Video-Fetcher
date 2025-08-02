@@ -1,0 +1,43 @@
+name: Run YouTube & OpenAI Scripts Daily
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  #Every day at 6 AM UTC
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run YouTube data collector
+        run: |
+          python scripts/youtube_data_collector.py
+
+      - name: Run OpenAI data processor
+        run: |
+          python scripts/openai_data_processing.py
+
+      - name: Commit processed data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/data/
+          git commit -m "update: daily process" || echo "No changes to commit"
+          git push
