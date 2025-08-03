@@ -79,6 +79,10 @@ fi
 deactivate
 log_message "Python virtual environment deactivated."
 
+# Copy the data from src/data to the dist/data directory before building, without this,
+# the new data will not be available in the built project.
+cp -R src/data dist/data
+
 # We build the project
 log_message "Running npm run build..."
 npm run build
