@@ -18,12 +18,13 @@ if not API_KEY:
 
 youtube = build('youtube', 'v3', developerKey=API_KEY)
 
-COUNTRY_CODES = ['AR', 'BO', 'CL', 'CO', 'CR', 'DO', 'EC', 'GT', 'HN', 'MX', 'NI', 'PA', 'PE', 'PY', 'SV', 'UY', 'VE', 'US']
+COUNTRY_CODES = ['US', 'CA', 'GB', 'IE', 'DE', 'FR', 'IT', 'NL', 'SE', 'PL', 'BE', 'AT', 'ES']
 MAX_RESULTS_PER_COUNTRY = 50
 MAX_COMMENTS = 200
 
 OUTPUT_THUMBNAILS_DIR = 'public/thumbnails'
 OUTPUT_METADATA_PATH = 'src/data/videos_metadata.json'
+
 
 # Create directories if they do not exist
 os.makedirs(OUTPUT_THUMBNAILS_DIR, exist_ok=True)

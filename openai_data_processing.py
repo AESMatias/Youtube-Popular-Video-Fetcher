@@ -20,21 +20,21 @@ os.makedirs(OUTPUT_SEO_DIR, exist_ok=True) # If the output directory does not ex
 
 def generate_seo_summary(video_info, openai_client):
     prompt = f"""
-    Eres un escritor profesional y un experto en creación de contenido para sitios web.
-    Has visto el siguiente video de YouTube y toda la información disponible (título, descripción, transcripción y comentarios).
-    Tu tarea es escribir una descripción larga, creativa y detallada sobre el video,
-    que refleje su esencia y contenido de forma atractiva, para que los visitantes del
-    sitio se interesen y comprendan claramente de qué trata.
-    Eres un escritor profesional especializado en contenido SEO para sitios web.
-    No copies literalmente la descripción, letras o enlaces del video. En lugar de eso, escribe un resumen original, creativo y descriptivo del video.
+        You are a professional writer and an expert in creating content for websites.
+        You have watched the following YouTube video and reviewed all available information (title, description, transcript, and comments).
+        Your task is to write a long, creative, and detailed description of the video,
+        which reflects its essence and content in an engaging way, so that site visitors
+        become interested and clearly understand what it is about.
+        You are a professional writer specialized in SEO content for websites.
+        Do not copy the description, lyrics, or links from the video literally. Instead, write an original, creative, and descriptive summary of the video.
+        The text will be in English and you will not include an introduction such as "Here is the description:" but write the content directly.
 
-    Información del video:
-    Título: {video_info['title']}
-    Descripción: {video_info['description']}
-    Transcripción: {video_info.get('transcript', 'No disponible')}
-    Primeros comentarios:
-    {json.dumps(video_info.get('comments', [])[:20], ensure_ascii=False)}
-    """
+        Video information:
+        Title: {video_info['title']}
+        Description: {video_info['description']}
+        Transcript: {video_info.get('transcript', 'Not available')}
+        Top comments:
+        {json.dumps(video_info.get('comments', [])[:20], ensure_ascii=False)}"""
 
     try:
         response = openai_client.chat.completions.create(
