@@ -63,24 +63,28 @@ def get_comments(video_id, max_comments=200):
     comments = []
     next_page_token = None
 
-    while len(comments) < max_comments:
-        response = youtube.commentThreads().list(
-            part='snippet',
-            videoId=video_id,
-            maxResults=100,
-            textFormat='plainText',
-            pageToken=next_page_token
-        ).execute()
+    try:
+        while len(comments) < max_comments:
+            response = youtube.commentThreads().list(
+                part='snippet',
+                videoId=video_id,
+                maxResults=100,
+                textFormat='plainText',
+                pageToken=next_page_token
+            ).execute()
 
-        for item in response.get('items', []):
-            comment = item['snippet']['topLevelComment']['snippet']['textDisplay']
-            comments.append(comment)
+            for item in response.get('items', []):
+                comment = item['snippet']['topLevelComment']['snippet']['textDisplay']
+                comments.append(comment)
 
-        next_page_token = response.get('nextPageToken')
-        if not next_page_token:
-            break
+            next_page_token = response.get('nextPageToken')
+            if not next_page_token:
+                break
+    except Exception:
+        return [] # If there's an error fetching comments, return an empty list
 
     return comments[:max_comments]
+
 
 def download_thumbnail(video_id, thumbnails_dict):
     # We prioritize the medium quality thumbnail

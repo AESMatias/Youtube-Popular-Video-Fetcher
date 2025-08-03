@@ -28,7 +28,8 @@ def generate_seo_summary(video_info, openai_client):
         You are a professional writer specialized in SEO content for websites.
         Do not copy the description, lyrics, or links from the video literally. Instead, write an original, creative, and descriptive summary of the video.
         The text will be in English and you will not include an introduction such as "Here is the description:" but write the content directly.
-        Do not mention, but the response should be formatted with line breaks for better readability (/n is interpreted as a new line).
+        Do not mention, but the response should be formatted with line breaks for better readability (/n is inter).
+        The complete response should be in english, not any other language.
 
         Video information:
         Title: {video_info['title']}

@@ -36,14 +36,25 @@ else
 fi
 
 # Execute youtube_data_collector.py and provide 'a' as input, which means "append to existing data"
-log_message "Executing $YOUTUBE_COLLECTOR_SCRIPT..."
-# Make sure expect is installed (sudo apt-get install expect)!
-expect -c "
-    spawn python3 $YOUTUBE_COLLECTOR_SCRIPT
-    expect \"Do you want to (o)verwrite, (a)ppend to existing, or (s)kip this step? (o/a/s): \"
-    send \"a\\r\"
-    expect eof
-"
+# log_message "Executing $YOUTUBE_COLLECTOR_SCRIPT..."
+# # Make sure expect is installed (sudo apt-get install expect)!
+# expect -c "
+#     spawn python3 $YOUTUBE_COLLECTOR_SCRIPT
+#     expect \"Do you want to (o)verwrite, (a)ppend to existing, or (s)kip this step? (o/a/s): \"
+#     send \"a\\r\"
+#     expect eof
+# "
+log_message "Executing $YOUTUBE_COLLECTOR_SCRIPT with APPEND ..."
+# We use printf to send "a" followed by a newline (\n) directly to the stdin of the Python script.
+if printf "a\n" | python3 "$YOUTUBE_COLLECTOR_SCRIPT" >> "$LOG_FILE" 2>&1; then
+    log_message "$YOUTUBE_COLLECTOR_SCRIPT executed successfully."
+else
+    log_message "Error: $YOUTUBE_COLLECTOR_SCRIPT failed to execute."
+    deactivate  # Deactivate venv on error
+    exit 1
+fi
+
+
 
 if [ $? -eq 0 ]; then
     log_message "$YOUTUBE_COLLECTOR_SCRIPT executed successfully with 'append' option."
