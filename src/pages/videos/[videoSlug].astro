@@ -67,7 +67,6 @@ const pageDescription = seoData?.seo_description || video.description;
 const pageDescriptionParsed = pageDescription
   .replace(/\*\*(.*?)\*\*/g, '$1')
   .replace(/\*(.*?)\*/g, '$1')
-  .replace(/\.\s*/g, '.\n');
 
 const youtubeWatchUrl = `https://www.youtube.com/watch?v=${video.video_id}`;
 
@@ -104,6 +103,7 @@ const thumbnailSrc = video.thumbnails?.maxres?.url || video.thumbnail_file;
         font-family: 'Roboto', system-ui, sans-serif;
         background-color: var(--color-bg);
         color: var(--color-text);
+        overflow-x: hidden;
       }
 
       body {
@@ -117,7 +117,7 @@ const thumbnailSrc = video.thumbnails?.maxres?.url || video.thumbnail_file;
       main.container {
         max-width: 700px;
         margin: auto;
-        padding: 2rem;
+        padding: 1.5rem;
       }
 
       h1, h2, h3 {
@@ -126,7 +126,7 @@ const thumbnailSrc = video.thumbnails?.maxres?.url || video.thumbnail_file;
       }
 
       p {
-        font-weight: 400;
+        font-weight: 500
       }
 
       img.thumbnail {
@@ -143,8 +143,54 @@ const thumbnailSrc = video.thumbnails?.maxres?.url || video.thumbnail_file;
         gap: 1rem;
         margin-bottom: 1.5rem;
       }
+      .thumbnail-wrapper {
+        width: 100%;
+        max-width: 700px;
+        margin: 0 auto 1.2rem auto;
+        border-radius: 20px;
+        overflow: hidden;
+        /* border: 1px solid red; */
+        padding: 0.8rem;
+        /* padding-top: 0rem; */
+      }
+
+      .thumbnail-blur {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 110%;
+        filter: blur(15px);
+        opacity: 0.2;
+        z-index: 1;
+        pointer-events: none;
+        transform: scale(1.2) translate(-40%, -45%);
+      }
+
+      .thumbnail {
+        position: relative;
+        z-index: 2;
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        display: block;
+        margin: 0 auto;
+        border: 1px solid var(--color-border);
+      }
 
       @media (max-width: 640px) {
+
+      .thumbnail-blur {
+        position: absolute;
+        top: 45%;
+        left: 50%;
+        width: 200%;
+        filter: blur(20px);
+        opacity: 0.2;
+        z-index: 1;
+        pointer-events: none;
+        transform: scale(1.2) translate(-40%, -45%);
+      }
+
         .buttons-container {
           flex-direction: column;
           align-items: center;
@@ -199,44 +245,8 @@ const thumbnailSrc = video.thumbnails?.maxres?.url || video.thumbnail_file;
       button.btn:hover {
         background-color: #222;
       }
+  </style>
 
-.thumbnail-wrapper {
-  width: 100%;
-  max-width: 700px;
-  margin: 0 auto 1.2rem auto;
-  border-radius: 20px;
-  overflow: hidden;
-  /* border: 1px solid red; */
-  padding: 0.8rem;
-  /* padding-top: 0rem; */
-}
-
-.thumbnail-blur {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 110%;
-  height: auto;
-  filter: blur(15px);
-  opacity: 0.1;
-  z-index: 1;
-  pointer-events: none;
-  transform: scale(1.2) translate(-40%, -45%);
-}
-
-.thumbnail {
-  position: relative;
-  z-index: 2;
-  max-width: 100%;
-  height: auto;
-  border-radius: 8px;
-  display: block;
-  margin: 0 auto;
-  border: 1px solid var(--color-border);
-}
-
-
-    </style>
   </head>
   <body>
     <main class="container">
