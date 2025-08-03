@@ -91,10 +91,11 @@ const thumbnailSrc = video.thumbnails?.maxres?.url || video.thumbnail_file;
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+    
     <style>
       :root {
         --color-primary: #ff0000;
-        --color-bg: #1a1a1a;
+        --color-bg: #131313;
         --color-text: #fff;
         --color-border: #444;
       }
@@ -111,6 +112,7 @@ const thumbnailSrc = video.thumbnails?.maxres?.url || video.thumbnail_file;
         display: flex;
         flex-direction: column;
       }
+      
 
       main.container {
         max-width: 700px;
@@ -197,6 +199,43 @@ const thumbnailSrc = video.thumbnails?.maxres?.url || video.thumbnail_file;
       button.btn:hover {
         background-color: #222;
       }
+
+.thumbnail-wrapper {
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto 1.2rem auto;
+  border-radius: 20px;
+  overflow: hidden;
+  /* border: 1px solid red; */
+  padding: 0.8rem;
+  /* padding-top: 0rem; */
+}
+
+.thumbnail-blur {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 110%;
+  height: auto;
+  filter: blur(15px);
+  opacity: 0.1;
+  z-index: 1;
+  pointer-events: none;
+  transform: scale(1.2) translate(-40%, -45%);
+}
+
+.thumbnail {
+  position: relative;
+  z-index: 2;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+  margin: 0 auto;
+  border: 1px solid var(--color-border);
+}
+
+
     </style>
   </head>
   <body>
@@ -207,7 +246,11 @@ const thumbnailSrc = video.thumbnails?.maxres?.url || video.thumbnail_file;
         👁️ {video.view_count} views · 🗓️ {formattedDate}
       </p>
 
-      <img src={thumbnailSrc} alt={video.title} class="thumbnail" />
+      <div class="thumbnail-wrapper">
+        <img src={thumbnailSrc} alt={video.title} class="thumbnail-blur" />
+        <img src={thumbnailSrc} alt={video.title} class="thumbnail" />
+      </div>
+
 
       <div class="buttons-container">
         <a

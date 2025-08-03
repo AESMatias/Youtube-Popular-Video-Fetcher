@@ -5,7 +5,10 @@ import videosMetadata from '../data/videos_metadata.json';
 import '../styles/video-card.css';
 
 const PAGE_SIZE = 100;
-const videosPage = videosMetadata.slice(0, PAGE_SIZE);
+
+// We need the first page to show the most recent videos.
+const reversedVideos = [...videosMetadata].reverse();
+const videosPage = reversedVideos.slice(0, PAGE_SIZE);
 
 const allVideoData: (VideoInfo & { seo?: SeoInfo })[] = [];
 

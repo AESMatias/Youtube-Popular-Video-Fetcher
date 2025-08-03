@@ -13,7 +13,10 @@ if (isNaN(pageNum) || pageNum < 1) {
 
 const startIndex = (pageNum - 1) * PAGE_SIZE;
 const endIndex = startIndex + PAGE_SIZE;
-const videosPage = videosMetadata.slice(startIndex, endIndex);
+
+// We need the videos in reverse order, so they appear from newest to oldest on each page.
+const reversedVideos = [...videosMetadata].reverse();
+const videosPage = reversedVideos.slice(startIndex, endIndex);
 
 const allVideoData: (VideoInfo & { seo?: SeoInfo })[] = [];
 
@@ -29,7 +32,7 @@ for (const video of videosPage) {
 
 const pageDescription = `Page ${pageNum} of popular videos with AI-enhanced descriptions.`;
 export async function getStaticPaths() {
-  const PAGE_SIZE = 60;
+  const PAGE_SIZE = 50;
   const totalPages = Math.ceil(videosMetadata.length / PAGE_SIZE);
 
   const paths = [];
@@ -81,7 +84,7 @@ export async function getStaticPaths() {
   }
 
   main {
-    width: 80%;
+    width: 75%;
     margin: 0 auto;
     padding: 20px;
     box-sizing: border-box;
@@ -113,7 +116,7 @@ export async function getStaticPaths() {
       padding: 20px;
     }
     .video-grid {
-      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     }
   }
   @media (max-width: 1600px) {
@@ -121,7 +124,7 @@ export async function getStaticPaths() {
       padding: 20px;
     }
     .video-grid {
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     }
   }
   @media (max-width: 1200px) {
@@ -129,7 +132,7 @@ export async function getStaticPaths() {
       padding: 20px;
     }
     .video-grid {
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     }
   }
   @media (max-width: 1024px) {
@@ -137,7 +140,7 @@ export async function getStaticPaths() {
       padding: 15px;
     }
     .video-grid {
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
       gap: 20px;
     }
   }
@@ -150,7 +153,7 @@ export async function getStaticPaths() {
     }
     .subtitle {
       font-size: 1rem;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
     }
     .video-grid {
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
