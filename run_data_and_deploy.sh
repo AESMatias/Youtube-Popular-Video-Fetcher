@@ -4,6 +4,11 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR" || exit 1
 
+# Function to log messages
+log_message() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
+}
+
 # Update repository from GitHub
 log_message "Pulling latest changes from GitHub repository..."
 git pull https://github.com/AESMatias/Youtube-Popular-Video-Fetcher.git
@@ -18,11 +23,6 @@ LOG_FILE="script_execution.log"
 YOUTUBE_COLLECTOR_SCRIPT="youtube_data_collector.py"
 OPENAI_PROCESSING_SCRIPT="openai_data_processing.py"
 ASTRO_PROJECT_PORT=50000
-
-# Function to log messages
-log_message() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
-}
 
 log_message "Starting the automated data collection and deployment script."
 
