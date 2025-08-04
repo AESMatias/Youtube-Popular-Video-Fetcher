@@ -145,9 +145,16 @@ def main_collector():
     if os.path.exists(OUTPUT_METADATA_PATH):
         user_choice = input(f"'{OUTPUT_METADATA_PATH}' already exists. Do you want to (o)verwrite, (a)ppend to existing, or (s)kip this step? (o/a/s): ").lower()
         if user_choice == 'a':
-            with open(OUTPUT_METADATA_PATH, 'r', encoding='utf-8') as f:
-                all_data = json.load(f)
-            print(f"Appending to the existing {len(all_data)} videos.")
+            
+            # This try catch protects against a corrupted JSON file
+            try:
+                with open(OUTPUT_METADATA_PATH, 'r', encoding='utf-8') as f:
+                    all_data = json.load(f)
+                print(f"Appending to the existing {len(all_data)} videos.")
+            except json.JSONDecodeError:
+                print("Warning: JSON file corrupted or invalid, starting with empty data.")
+                all_data = []
+            
         elif user_choice == 's':
             print("Skipping YouTube data collection phase.")
             return
