@@ -178,7 +178,7 @@ const thumbnailSrc = video.thumbnails?.maxres?.url || video.thumbnail_file;
       opacity: 0.3;
       pointer-events: none;
       transform: translate(-50%, -50%);
-      z-index: 0;
+      z-index: -1;
     }
 
     .thumbnail {
@@ -245,6 +245,10 @@ const thumbnailSrc = video.thumbnails?.maxres?.url || video.thumbnail_file;
         width: 140%;
         margin-left: -20%;
         margin-right: -20%;
+        }
+        .description-text {
+          padding-left: 2.5%;
+          padding-right: 2.5%;
         }
       }
 
