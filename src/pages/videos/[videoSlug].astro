@@ -194,6 +194,9 @@ const thumbnailSrc = video.thumbnails?.maxres?.url || video.thumbnail_file;
 
 
       @media (max-width: 900px) {
+        .video-title {
+          font-size: 1rem;
+        }
 
         .description-container {
           width: 90%;
@@ -234,6 +237,14 @@ const thumbnailSrc = video.thumbnails?.maxres?.url || video.thumbnail_file;
           pointer-events: none;
           transform: scale(1.2) translate(-40%, -45%);
         }
+
+      }
+      
+      @media (min-width: 600px) and (max-width: 1200px) {
+        .video-title {
+          font-size: 1.2rem;
+        }
+
       }
 
       @media (min-width: 1200px) {
@@ -250,6 +261,13 @@ const thumbnailSrc = video.thumbnails?.maxres?.url || video.thumbnail_file;
           padding-left: 2.5%;
           padding-right: 2.5%;
         }
+                .video-title {
+          font-size: 1.4rem;
+        }
+      }
+
+      .description-text {
+        margin-top: 5px;
       }
 
       a.btn, button.btn {
@@ -295,7 +313,7 @@ const thumbnailSrc = video.thumbnails?.maxres?.url || video.thumbnail_file;
         <img src={thumbnailSrc} alt={video.title} class="thumbnail" />
       </div>
 
-      <h1 style="text-align: center; margin-bottom:1rem;">{pageTitle}</h1>
+      <h1 class="video-title" style="text-align: center; margin-bottom:1rem;">{pageTitle}</h1>
       <!-- <p style="text-align: center; margin: 0; margin-bottom:.4rem">By {video.channel_title}</p> -->
       <p style="text-align: center; font-size: 0.95rem; color: #ccc;
       margin: 0; margin-bottom:1rem;">
