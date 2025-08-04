@@ -8,6 +8,7 @@ from tqdm import tqdm
 from dotenv import load_dotenv
 from PIL import Image
 from io import BytesIO
+import sys
 
 load_dotenv()
 
@@ -170,20 +171,27 @@ def main_collector():
                     all_data.append(info)
                 except Exception as e:
                     print(f'⚠️ Error processing video {video_id}: {e}')
-            time.sleep(1)  # Pause to avoid API rate BAN!
+            time.sleep(0.2)  # Pause to avoid API rate BAN!
 
         # we save the final JSON
-        with open(OUTPUT_METADATA_PATH, 'w', encoding='utf-8') as f:
+        tmp_path = OUTPUT_METADATA_PATH + '.tmp' # Create a temporary file to avoid data loss
+        with open(tmp_path, 'w', encoding='utf-8') as f:
             json.dump(all_data, f, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, OUTPUT_METADATA_PATH)
+
         print(f"\nData collection complete. Saved to '{OUTPUT_METADATA_PATH}' and thumbnails to '{OUTPUT_THUMBNAILS_DIR}/'")
 
     except KeyboardInterrupt:
         print("\nData collection process interrupted by user.")
-        with open(OUTPUT_METADATA_PATH, 'w', encoding='utf-8') as f:
-            json.dump(all_data, f, ensure_ascii=False, indent=2)
-        print(f"Progress saved to '{OUTPUT_METADATA_PATH}'.")
-    except Exception as e:
-        print(f"\n ERROR: An unexpected error occurred during data collection: {e}")
+        try:
+            tmp_path = OUTPUT_METADATA_PATH + '.tmp'
+            with open(tmp_path, 'w', encoding='utf-8') as f:
+                json.dump(all_data, f, ensure_ascii=False, indent=2)
+            os.replace(tmp_path, OUTPUT_METADATA_PATH)
+            print(f"Progress safely saved to '{OUTPUT_METADATA_PATH}'.")
+        except Exception as e:
+            print(f"⚠️ Failed to save progress after interruption: {e}")
+            sys.exit(1)
 
 if __name__ == "__main__":
     main_collector()
