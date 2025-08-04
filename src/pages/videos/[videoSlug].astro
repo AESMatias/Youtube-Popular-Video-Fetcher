@@ -295,11 +295,11 @@ const thumbnailSrc = video.thumbnails?.maxres?.url || video.thumbnail_file;
         <img src={thumbnailSrc} alt={video.title} class="thumbnail" />
       </div>
 
-      <h1 style="text-align: center; margin-bottom:.4rem;">{pageTitle}</h1>
-      <p style="text-align: center; margin: 0;">By {video.channel_title}</p>
+      <h1 style="text-align: center; margin-bottom:1rem;">{pageTitle}</h1>
+      <!-- <p style="text-align: center; margin: 0; margin-bottom:.4rem">By {video.channel_title}</p> -->
       <p style="text-align: center; font-size: 0.95rem; color: #ccc;
-      margin: 0; margin-bottom:.5rem;">
-        👁️ {video.view_count} views · 🗓️ {formattedDate}
+      margin: 0; margin-bottom:1rem;">
+      👁️ {video.view_count} views · 🗓️ {formattedDate} · ✍️ By {video.channel_title}
       </p>
 
       <div class="buttons-container">
