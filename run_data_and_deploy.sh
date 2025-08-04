@@ -4,6 +4,11 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR" || exit 1
 
+LOG_FILE="script_execution.log"
+YOUTUBE_COLLECTOR_SCRIPT="youtube_data_collector.py"
+OPENAI_PROCESSING_SCRIPT="openai_data_processing.py"
+ASTRO_PROJECT_PORT=50000
+
 # Function to log messages
 log_message() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
@@ -18,11 +23,6 @@ else
     log_message "Error: Git pull failed."
     exit 1
 fi
-
-LOG_FILE="script_execution.log"
-YOUTUBE_COLLECTOR_SCRIPT="youtube_data_collector.py"
-OPENAI_PROCESSING_SCRIPT="openai_data_processing.py"
-ASTRO_PROJECT_PORT=50000
 
 log_message "Starting the automated data collection and deployment script."
 
