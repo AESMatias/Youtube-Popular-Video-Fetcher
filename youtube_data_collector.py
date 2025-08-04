@@ -191,7 +191,7 @@ def main_collector():
             print(f"Progress safely saved to '{OUTPUT_METADATA_PATH}'.")
         except Exception as e:
             print(f"⚠️ Failed to save progress after interruption: {e}")
-            sys.exit(1)
+            
 
 if __name__ == "__main__":
     main_collector()
