@@ -16,7 +16,9 @@ log_message() {
 
 # Update repository from GitHub
 log_message "Pulling latest changes from GitHub repository..."
-git pull https://github.com/AESMatias/Youtube-Popular-Video-Fetcher.git
+#git pull https://github.com/AESMatias/Youtube-Popular-Video-Fetcher.git
+git fetch origin main
+git reset --hard origin/main
 if [ $? -eq 0 ]; then
     log_message "Git pull completed successfully."
 else
