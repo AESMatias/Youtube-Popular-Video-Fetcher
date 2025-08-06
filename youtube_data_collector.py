@@ -8,8 +8,6 @@ from tqdm import tqdm
 from dotenv import load_dotenv
 from PIL import Image
 from io import BytesIO
-import sys
-
 load_dotenv()
 
 API_KEY = os.getenv('YOUTUBE_API_KEY')

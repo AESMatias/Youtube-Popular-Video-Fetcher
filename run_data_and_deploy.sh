@@ -31,13 +31,17 @@ fi
 log_message "Starting the automated data collection and deployment script."
 
 #  Activate Python virtual environment (assuming it's named 'venv' in the current directory)
-if [ -f venv/bin/activate ]; then
+if [ ! -f venv/bin/activate ]; then
+    log_message "Virtual environment not found. Creating it..."
+    python3 -m venv venv
     source venv/bin/activate
-    log_message "Python virtual environment activated."
+    pip install -r requirements.txt
+    log_message "venv created, and requirements.txt has been installed."
 else
-    log_message "Error: Python virtual environment 'venv' not found. Please ensure it exists and is set up correctly."
-    exit 1
+    source venv/bin/activate
+    log_message "Python venv activated."
 fi
+
 
 # Execute youtube_data_collector.py and provide 'a' as input, which means "append to existing data"
 # log_message "Executing $YOUTUBE_COLLECTOR_SCRIPT..."
