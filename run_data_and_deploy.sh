@@ -40,6 +40,8 @@ if [ ! -f venv/bin/activate ]; then
 else
     source venv/bin/activate
     log_message "Python venv activated."
+    pip install -r requirements.txt
+    log_message "Dependencies installed in existing venv."
 fi
 
 
