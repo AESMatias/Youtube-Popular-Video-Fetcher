@@ -103,13 +103,13 @@ else
     exit 1
 fi
 
-# We kill the existing PM2 processes related to the Astro server, if any
+# We kill the existing PM2 process related to the Astro server, if any
 log_message "Killing existing PM2 processes..."
-pm2 kill
+pm2 delete astro-server || true
 if [ $? -eq 0 ]; then
-    log_message "PM2 processes killed successfully."
+    log_message "PM2 astro-server processes killed successfully."
 else
-    log_message "Warning: pm2 kill command might have failed or no processes were running. Continuing anyway."
+    log_message "Warning: pm2 delete astro-server command might have failed or no processes were running. Continuing anyway."
 fi
 
 # After building and killing existing PM2 processes, we start the Astro server again with PM2
