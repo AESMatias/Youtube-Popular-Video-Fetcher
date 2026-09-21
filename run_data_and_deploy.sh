@@ -114,7 +114,7 @@ fi
 
 # After building and killing existing PM2 processes, we start the Astro server natively with PM2 and allowed hosts
 log_message "Starting Astro server with PM2..."
-pm2 start npm --name "astro-server" -- run preview -- --host 127.0.0.1 --port $ASTRO_PROJECT_PORT --allowedHosts all
+pm2 start npm --name "astro-server" -- run preview -- --host 127.0.0.1 --port 50000 --allowedHosts=videos.rapidmov.online
 if [ $? -eq 0 ]; then
     log_message "Astro server started successfully with PM2 in port $ASTRO_PROJECT_PORT."
 else
