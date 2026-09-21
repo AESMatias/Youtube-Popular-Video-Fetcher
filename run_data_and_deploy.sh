@@ -115,7 +115,7 @@ fi
 # After building and killing existing PM2 processes, we start the Astro server again with PM2
 log_message "Starting Astro server with PM2..."
 # The port is setted in NGINX config too, I was hassling with it for a while
-pm2 start serve --name "astro-server" -- dist --listen $ASTRO_PROJECT_PORT
+pm2 serve dist $ASTRO_PROJECT_PORT --name "astro-server"
 if [ $? -eq 0 ]; then
     log_message "Astro server started successfully with PM2 in port $ASTRO_PROJECT_PORT."
 else
