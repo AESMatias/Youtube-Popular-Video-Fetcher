@@ -112,10 +112,9 @@ else
     log_message "Warning: pm2 delete astro-server command might have failed or no processes were running. Continuing anyway."
 fi
 
-# After building and killing existing PM2 processes, we start the Astro server again with PM2
+# After building and killing existing PM2 processes, we start the Astro server natively with PM2
 log_message "Starting Astro server with PM2..."
-# The port is setted in NGINX config too, I was hassling with it for a while
-pm2 serve dist $ASTRO_PROJECT_PORT --name "astro-server"
+pm2 start npm --name "astro-server" -- run preview -- --host 127.0.0.1 --port $ASTRO_PROJECT_PORT
 if [ $? -eq 0 ]; then
     log_message "Astro server started successfully with PM2 in port $ASTRO_PROJECT_PORT."
 else
