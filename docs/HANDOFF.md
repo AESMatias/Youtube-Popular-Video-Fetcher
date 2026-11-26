@@ -1,6 +1,6 @@
 # Estado del proyecto (para quien siga)
 
-Última revisión: 2026-11-26. Rama activa: `feature/sqlite-pipeline` (aún no está en `main`).
+Última revisión: 2026-11-26. Todo está en `main`.
 
 ## Cómo está armado
 
@@ -14,7 +14,7 @@ Cada video se guarda una sola vez. Si vuelve a estar en tendencia se actualizan 
 ## Deploy
 
 ```bash
-ssh vps 'cd /root/Youtube-Popular-Video-Fetcher && BRANCH=feature/sqlite-pipeline ./deploy.sh'
+ssh vps 'cd /root/Youtube-Popular-Video-Fetcher && ./deploy.sh'
 ```
 
 `vps` es un alias en `~/.ssh/config` del notebook del dueño. La API key de YouTube va en `.env` (`YOUTUBE_API_KEY=...`), nunca en git.
@@ -32,7 +32,7 @@ ssh vps 'cd /root/Youtube-Popular-Video-Fetcher && BRANCH=feature/sqlite-pipelin
 ## Pendiente
 
 - YouTube bloquea transcripciones si se piden muchas seguidas (`IpBlocked`). Esas se reintentan en la próxima corrida.
-- Pasar la rama a `main` cuando esté revisada y cambiar el deploy a `main`.
+
 - Cron en el server para `deploy.sh` (sale solo si no hay cambios).
 - Respaldo de `data/videos.db`: si se pierde, se pierde el historial de videos ya vistos.
 - Redirecciones para URLs viejas de títulos con tildes y para `/page/N`.
