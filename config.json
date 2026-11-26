@@ -1,0 +1,18 @@
+{
+  "defaults": {
+    "top": 30,
+    "regions_per_lang": 3,
+    "transcript_chars": 1500,
+    "comments": 10
+  },
+  "languages": {
+    "en": {"name": "English", "regions": ["US", "GB", "CA", "AU", "NZ", "IE", "ZA", "SG", "PH", "NG", "KE", "IN", "GH", "UG", "JM", "MY"]},
+    "es": {"name": "Español", "regions": ["ES", "MX", "AR", "CO", "CL", "PE", "VE", "EC", "UY", "PY", "BO", "GT", "CR", "PA", "DO", "SV", "HN", "NI", "PR"]},
+    "pt": {"name": "Português", "regions": ["BR", "PT"]},
+    "fr": {"name": "Français", "regions": ["FR", "BE", "CH", "CA", "SN", "CI", "MA", "DZ", "TN", "CM", "LU"]},
+    "de": {"name": "Deutsch", "regions": ["DE", "AT", "CH", "LU"]},
+    "hi": {"name": "हिन्दी", "regions": ["IN"]},
+    "ja": {"name": "日本語", "regions": ["JP"]},
+    "ko": {"name": "한국어", "regions": ["KR"]}
+  }
+}

@@ -1,7 +1,1 @@
-google-api-python-client
-youtube-transcript-api
-tqdm
-requests
-python-dotenv
-Pillow
-openai
+youtube-transcript-api==1.2.5
