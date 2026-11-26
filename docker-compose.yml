@@ -1,0 +1,35 @@
+# Serves the built site (dist/) on 127.0.0.1:50000, where cloudflared points.
+services:
+  web:
+    image: nginx:1.28-alpine
+    container_name: videos-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:50000:80"
+    volumes:
+      - ./dist:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    cap_drop: [ALL]
+    # master runs as root to bind :80 and drop to the nginx user
+    cap_add: [CHOWN, SETUID, SETGID, NET_BIND_SERVICE]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 32m
+    cpus: 0.25
+    environment:
+      NGINX_ENTRYPOINT_QUIET_LOGS: "1"
+    logging:
+      driver: json-file
+      options:
+        max-size: "1m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

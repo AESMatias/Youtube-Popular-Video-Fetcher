@@ -4,11 +4,15 @@
   "version": "0.0.2",
   "description": "A simple Astro project to fetch and display popular YouTube videos with AI-generated descriptions.",
   "author": "AESMatias",
+  "engines": {
+    "node": "18.20.8 || ^20.3.0 || >=22.0.0"
+  },
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "test": "python3 -m unittest discover -s tests -v"
   },
   "dependencies": {
     "astro": "^5.12.8"
