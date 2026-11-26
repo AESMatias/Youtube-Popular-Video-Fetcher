@@ -42,7 +42,7 @@ const detailPageUrl = `/videos/${video.slug}`;
       </a>
       <p class="meta">
         <span class="channel">{video.channel_title}</span>
-        {views && <span class="views">{views} views</span>}
+        {views && <span class="views" data-i18n="views" data-i18n-n={views}>{views} views</span>}
       </p>
 
       {descriptionToShow && <p class="description">{descriptionToShow}</p>}
@@ -50,11 +50,11 @@ const detailPageUrl = `/videos/${video.slug}`;
       <div class="actions">
         <a href={video.youtube_url} target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm yt-btn">
           <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5.5v13l11-6.5z" /></svg>
-          Watch<span class="yt-long"> on YouTube</span><span class="visually-hidden">: {title} (opens in a new tab)</span>
+          <span class="yt-short" aria-hidden="true" data-i18n="watch">Watch</span><span class="yt-long" data-i18n="watchOnYt">Watch on YouTube</span><span class="visually-hidden">: {title} <span data-i18n="newTab">(opens in a new tab)</span></span>
         </a>
-        <a href={detailPageUrl} class="btn btn-glass btn-sm details-btn" title="Summary and details">
+        <a href={detailPageUrl} class="btn btn-glass btn-sm details-btn" title="Summary and details" data-i18n-title="detailsTitle">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" /><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2" /></svg>
-          <span class="visually-hidden">Details: {title}</span>
+          <span class="visually-hidden"><span data-i18n="details">Details</span>: {title}</span>
         </a>
       </div>
     </div>
@@ -293,8 +293,14 @@ const detailPageUrl = `/videos/${video.slug}`;
     min-width: 0;
     justify-content: center;
   }
+  .yt-short {
+    display: none;
+  }
   /* narrow cards: show "Watch", screen readers still get the full label */
   @container (max-width: 215px) {
+    .yt-short {
+      display: inline;
+    }
     .yt-long {
       position: absolute;
       width: 1px;

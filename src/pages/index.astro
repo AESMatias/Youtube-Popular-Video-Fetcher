@@ -28,22 +28,22 @@ const pageDescription = "The most popular YouTube videos in every language, rank
   {sections.length > 0 && <script is:inline slot="head" type="application/ld+json" set:html={jsonLd(itemList)} />}
   <main class="page">
     <div class="hero">
-      <h1 class="page-title">What the world is <span class="gradient-text">watching</span></h1>
-      <p class="subtitle">The most popular YouTube videos by language, updated weekly.</p>
+      <h1 class="page-title"><span data-i18n="heroA">What the world is</span> <span class="gradient-text" data-i18n="heroB">watching</span></h1>
+      <p class="subtitle" data-i18n="heroSub">The most popular YouTube videos by language, updated weekly.</p>
     </div>
 
     {sections.length > 0 ? sections.map(({ lang, videos }, s) => (
       <section class="lang-section" lang={lang.code} aria-labelledby={`lang-${lang.code}`}>
         <div class="section-head">
-          <h2 id={`lang-${lang.code}`}>{lang.name} <span class="count">{lang.count} videos</span></h2>
-          <a href={`/lang/${lang.code}`} class="see-all btn btn-glass btn-sm">See all <span aria-hidden="true">→</span><span class="visually-hidden"> {lang.name} videos</span></a>
+          <h2 id={`lang-${lang.code}`}>{lang.name} <span class="count" data-i18n="nVideos" data-i18n-n={lang.count}>{lang.count} videos</span></h2>
+          <a href={`/lang/${lang.code}`} class="see-all btn btn-glass btn-sm"><span data-i18n="seeAll">See all</span> <span aria-hidden="true">→</span> <span class="visually-hidden" data-i18n="seeAllSr" data-i18n-lang={lang.name}>{lang.name} videos</span></a>
         </div>
         <div class="video-grid">
           {videos.map((video, i) => <VideoCard video={video} eager={s === 0 && i < 4} />)}
         </div>
       </section>
     )) : (
-      <p class="empty-state">No videos yet. The next data refresh will fill this page, check back soon!</p>
+      <p class="empty-state" data-i18n="emptyHome">No videos yet. The next data refresh will fill this page, check back soon!</p>
     )}
   </main>
 </Layout>

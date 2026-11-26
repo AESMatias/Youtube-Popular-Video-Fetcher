@@ -17,15 +17,15 @@ const list = videosByLang(lang.code);
 >
   <main class="page">
     <div class="hero">
-      <h1 class="page-title">Popular in <span class="gradient-text">{lang.name}</span></h1>
-      <p class="subtitle">The {list.length} most watched YouTube videos in {lang.name} this week, ranked.</p>
+      <h1 class="page-title"><span data-i18n="popPre">Popular in</span> <span class="gradient-text">{lang.name}</span><span data-i18n="popPost"></span></h1>
+      <p class="subtitle" data-i18n="langSub" data-i18n-n={list.length} data-i18n-lang={lang.name}>The {list.length} most watched YouTube videos in {lang.name} this week, ranked.</p>
     </div>
     {list.length > 0 ? (
       <section class="video-grid" lang={lang.code}>
         {list.map((video, i) => <VideoCard video={video} eager={i < 4} />)}
       </section>
     ) : (
-      <p class="empty-state">No videos for this language yet, check back after the next refresh.</p>
+      <p class="empty-state" data-i18n="emptyLang">No videos for this language yet, check back after the next refresh.</p>
     )}
   </main>
 </Layout>
