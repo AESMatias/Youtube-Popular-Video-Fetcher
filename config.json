@@ -5,6 +5,7 @@
     "transcript_chars": 1500,
     "comments": 10
   },
+  "llm": {"enabled": false, "provider": null, "limit": 30},
   "languages": {
     "en": {"name": "English", "regions": ["US", "GB", "CA", "AU", "NZ", "IE", "ZA", "SG", "PH", "NG", "KE", "IN", "GH", "UG", "JM", "MY"]},
     "es": {"name": "Español", "regions": ["ES", "MX", "AR", "CO", "CL", "PE", "VE", "EC", "UY", "PY", "BO", "GT", "CR", "PA", "DO", "SV", "HN", "NI", "PR"]},

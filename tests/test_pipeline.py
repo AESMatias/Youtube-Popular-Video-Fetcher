@@ -170,25 +170,6 @@ class PipelineTest(unittest.TestCase):
                     'thumbnail_url', 'description', 'times_featured', 'first_seen'):
             self.assertIn(key, v)
 
-    def test_import_legacy(self):
-        old = os.path.join(self.tmp, 'old')
-        os.makedirs(os.path.join(old, 'sumarios_seo'))
-        items = [{'video_id': 'l1', 'title': 'One', 'view_count': '30', 'region_code': 'ES', 'transcript': 'hola',
-                  'comments': ['c1', 'c2']},
-                 {'video_id': 'l1', 'title': 'Dup', 'view_count': '1', 'region_code': 'US'},
-                 {'video_id': 'l2', 'title': 'Two', 'view_count': '20', 'region_code': 'IT'},
-                 {'video_id': 'l3', 'title': 'Three', 'view_count': '10', 'region_code': 'DE'}]
-        json.dump(items, open(os.path.join(old, 'videos_metadata.json'), 'w'))
-        json.dump({'seo_title': 'S1', 'seo_description': 'D1'}, open(os.path.join(old, 'sumarios_seo', 'l1.json'), 'w'))
-        json.dump({'seo_title': 'S3', 'seo_description': 'D3', 'fallback': True},
-                  open(os.path.join(old, 'sumarios_seo', 'l3.json'), 'w'))
-        self.assertEqual(pipeline.import_legacy(self.conn, self.config, old, 30), 3)
-        langs = dict(self.q('SELECT video_id, lang FROM videos'))
-        self.assertEqual(langs, {'l1': 'es', 'l2': 'en', 'l3': 'de'})
-        self.assertEqual([tuple(r) for r in self.q('SELECT video_id, source FROM summaries')], [('l1', 'legacy')])
-        self.assertEqual(len(self.q('SELECT * FROM featured')), 3)
-        self.assertEqual(self.q("SELECT text FROM transcripts")[0][0], 'hola')
-
     def test_collect_without_key_fails(self):
         old = os.environ.pop('YOUTUBE_API_KEY', None)
         orig = pipeline.api_key

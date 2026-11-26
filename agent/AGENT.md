@@ -2,8 +2,11 @@
 
 You are refreshing the site data and writing the video summaries. Run everything from the repo root.
 
-0. `./sync.sh pull`
-   Gets the database from the server, which keeps the real copy. Never skip this.
+The data lives in git: `archive/` has one JSONL file per month (closed months are gzipped).
+`data/videos.db` is only a local working copy built from it.
+
+0. `python3 pipeline.py restore`
+   Merges `archive/` into `data/videos.db` (creates it if missing). Never skip this.
 1. `python3 pipeline.py collect`
    Needs `YOUTUBE_API_KEY` in the environment or in `.env`. A quota warning is fine: what was collected is saved.
 2. `python3 pipeline.py agent-export --limit 30`
@@ -27,10 +30,22 @@ You are refreshing the site data and writing the video summaries. Run everything
 4. `python3 pipeline.py agent-import`
    Check the rejected list, fix those entries in a new `agent/outbox.json` and import again if needed.
 5. `python3 pipeline.py export-site`
-6. `./sync.sh push`
-   Uploads the database. The server keeps the last 12 copies in `/root/backups/videos-db`.
+6. `python3 pipeline.py backup`
+   Writes the database back to `archive/`.
 7. `npm run build` and make sure it passes.
-8. Commit `src/data/site.json` with a short plain message (no co-author lines) and push.
-9. `ssh vps 'cd /root/Youtube-Popular-Video-Fetcher && ./deploy.sh'`
+8. Commit `archive/` and `src/data/site.json` with a short plain message (no co-author lines) and push.
+9. Run `./deploy.sh` on the server (or let its cron job pick up the commit).
 
 `python3 pipeline.py stats` shows table counts, pending summaries and the last run.
+
+## Without an agent
+
+`python3 pipeline.py update` does steps 0 to 6 in one go (restore, collect, summaries, export-site, backup).
+It is safe for a cron job.
+
+Summaries can also come from an LLM API with `python3 pipeline.py summarize`. This is off by default
+because the APIs cost money. It only runs if `config.json` has `"llm": {"enabled": true, "provider": "..."}`
+or you pass `--provider NAME` (openai, gemini, claude, deepseek, grok), and the provider's key is set
+(`OPENAI_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`, `XAI_API_KEY`).
+`--dry-run` shows the prompt and the count without calling anything. With `llm.enabled` false, `update`
+never calls an LLM: it writes `agent/inbox.md` and you do steps 3 and 4 by hand.

@@ -5,6 +5,8 @@ Run `python3 pipeline.py -h` for commands. See agent/AGENT.md for the weekly rou
 """
 import argparse
 import datetime
+import filecmp
+import gzip
 import json
 import os
 import re
@@ -14,8 +16,14 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+import providers
+
 ROOT = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(ROOT, 'config.json')
+ARCHIVE_DIR = os.path.join(ROOT, 'archive')
+VIDEO_COLS = ('video_id', 'lang', 'title', 'channel_title', 'published_at', 'description', 'duration',
+              'thumbnail_url', 'view_count', 'like_count', 'comment_count', 'first_seen', 'last_seen',
+              'times_featured')
 API_BASE = 'https://www.googleapis.com/youtube/v3/'
 QUOTA_REASONS = ('quotaExceeded', 'dailyLimitExceeded')
 STORED_TRANSCRIPT_CHARS = 8000
@@ -77,14 +85,14 @@ def connect():
     return conn
 
 
-def api_key():
-    key = os.environ.get('YOUTUBE_API_KEY')
+def api_key(env='YOUTUBE_API_KEY'):
+    key = os.environ.get(env)
     env_path = os.path.join(ROOT, '.env')
     if not key and os.path.exists(env_path):
         with open(env_path, encoding='utf-8') as f:
             for line in f:
                 name, sep, value = line.strip().partition('=')
-                if sep and name.strip() == 'YOUTUBE_API_KEY':
+                if sep and name.strip() == env:
                     key = value.strip().strip('"\'')
     return key
 
@@ -301,6 +309,21 @@ def pending(conn, limit=-1):
     """ % LATEST_FEATURED, (limit,)).fetchall()
 
 
+def video_lines(r, max_chars):
+    """Compact text about one pending video, used by agent-export and summarize."""
+    lines = ['## %s (%s)' % (r['video_id'], r['lang']),
+             'Title: ' + squash(r['title'], 200),
+             'Channel: ' + squash(r['channel_title'], 100),
+             'Description: ' + squash(r['description'], 400)]
+    if r['transcript']:
+        lines.append('Transcript: ' + squash(r['transcript'], max_chars))
+    comments = json.loads(r['comments'] or '[]')[:10]
+    if comments:
+        lines.append('Comments:')
+        lines += ['- ' + squash(c, 150) for c in comments]
+    return lines
+
+
 def agent_export(conn, out, limit, max_chars):
     rows = pending(conn, limit)
     if not rows:
@@ -310,17 +333,7 @@ def agent_export(conn, out, limit, max_chars):
              'Write agent/outbox.json as {"<video_id>": {"seo_title": "...", "seo_description": "..."}}. '
              'Rules are in agent/AGENT.md.', '']
     for r in rows:
-        lines += ['## %s (%s)' % (r['video_id'], r['lang']),
-                  'Title: ' + squash(r['title'], 200),
-                  'Channel: ' + squash(r['channel_title'], 100),
-                  'Description: ' + squash(r['description'], 400)]
-        if r['transcript']:
-            lines.append('Transcript: ' + squash(r['transcript'], max_chars))
-        comments = json.loads(r['comments'] or '[]')[:10]
-        if comments:
-            lines.append('Comments:')
-            lines += ['- ' + squash(c, 150) for c in comments]
-        lines.append('')
+        lines += video_lines(r, max_chars) + ['']
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     with open(out, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines))
@@ -421,61 +434,187 @@ def export_site(conn, config, out):
     return data
 
 
-def legacy_lang(d, config, regions_map):
-    for field in ('lang', 'language', 'default_audio_language', 'defaultAudioLanguage', 'default_language'):
-        value = (d.get(field) or '')[:2].lower()
-        if value in config['languages']:
-            return value
-    langs = regions_map.get(d.get('region_code') or d.get('region') or '')
-    return langs[0] if langs else 'en'
+SUMMARY_PROMPT = """You write the text for a site that lists popular YouTube videos.
+Reply with only a JSON object: {"seo_title": "...", "seo_description": "..."}
+
+Rules:
+- Write in the video's language: %s.
+- seo_title: 70 characters or less, clear and specific, no clickbait.
+- seo_description: 2 or 3 short paragraphs separated by a blank line, about 120 to 200 words,
+  between 300 and 1500 characters. Say what the video is about and why people are watching it.
+  Use the transcript and comments as context.
+- Use your own words. Do not copy the description, song lyrics or links. No intro like "Here is the summary".
+
+Video:
+%s
+"""
 
 
-def import_legacy(conn, config, folder, top):
-    # shortcut: loads the whole old JSON at once, fine for a one-time import
-    with open(os.path.join(folder, 'videos_metadata.json'), encoding='utf-8') as f:
-        old = json.load(f)
-    regions_map = region_langs(config)
-    n_comments = config['defaults']['comments']
-    run_id = conn.execute('INSERT INTO runs (started_at, params) VALUES (?, ?)',
-                          (now(), json.dumps({'legacy': folder}))).lastrowid
-    by_lang, seen, summaries = {}, set(), 0
-    for d in old if isinstance(old, list) else []:
-        vid = isinstance(d, dict) and d.get('video_id')
-        if not vid or vid in seen:
-            continue
-        seen.add(vid)
-        lang = legacy_lang(d, config, regions_map)
-        conn.execute("""
-            INSERT OR IGNORE INTO videos (video_id, lang, title, channel_title, published_at, description,
-                duration, thumbnail_url, view_count, like_count, comment_count, first_seen, last_seen,
-                times_featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
-        """, (vid, lang, d.get('title'), d.get('channel_title'), d.get('published_at'), d.get('description'),
-              d.get('duration'), thumbnail(vid, d.get('thumbnails')), to_int(d.get('view_count')),
-              to_int(d.get('like_count')), to_int(d.get('comment_count')), now(), now()))
-        if d.get('transcript'):
-            conn.execute('INSERT OR IGNORE INTO transcripts VALUES (?, ?, ?)',
-                         (vid, d['transcript'][:STORED_TRANSCRIPT_CHARS], now()))
-        if d.get('comments'):
-            conn.execute('INSERT OR IGNORE INTO comments VALUES (?, ?, ?)',
-                         (vid, json.dumps(d['comments'][:n_comments], ensure_ascii=False), now()))
+def build_prompt(r, max_chars):
+    return SUMMARY_PROMPT % (r['lang'], '\n'.join(video_lines(r, max_chars)))
+
+
+def parse_summary(text):
+    """Pull the JSON object out of a model reply, ignoring code fences or chatter around it."""
+    start, end = (text or '').find('{'), (text or '').rfind('}')
+    if start < 0 or end < start:
+        raise ValueError('no JSON object in reply')
+    return json.loads(text[start:end + 1])
+
+
+def summarize(conn, name, key, model, limit, max_chars):
+    module = providers.PROVIDERS[name]
+    rows = pending(conn, limit)
+    done = 0
+    for r in rows:
         try:
-            with open(os.path.join(folder, 'sumarios_seo', vid + '.json'), encoding='utf-8') as f:
-                s = json.load(f)
-            if s.get('seo_description') and not s.get('fallback'):
-                cur = conn.execute('INSERT OR IGNORE INTO summaries VALUES (?, ?, ?, ?, ?)',
-                                   (vid, s.get('seo_title') or d.get('title'), s['seo_description'], 'legacy', now()))
-                summaries += cur.rowcount
-        except (OSError, ValueError, AttributeError):
-            pass
-        by_lang.setdefault(lang, []).append((to_int(d.get('view_count')) or 0, vid))
-    for lang, items in by_lang.items():
-        for rank, (_, vid) in enumerate(sorted(items, reverse=True)[:top], 1):
-            conn.execute('INSERT INTO featured VALUES (?, ?, ?, ?)', (run_id, lang, rank, vid))
-            conn.execute('UPDATE videos SET times_featured = times_featured + 1 WHERE video_id=?', (vid,))
-    conn.execute('UPDATE runs SET finished_at=? WHERE id=?', (now(), run_id))
-    conn.commit()
-    print('Imported %d videos and %d summaries from %s' % (len(seen), summaries, folder))
-    return len(seen)
+            value, err = validate_summary(parse_summary(module.complete(build_prompt(r, max_chars), key, model)))
+        except providers.ProviderError as e:
+            if e.fatal:
+                warn('%s: %s, stopping' % (name, e))
+                break
+            value, err = None, str(e)
+        except ValueError as e:
+            value, err = None, 'bad JSON: %s' % e
+        if err:
+            warn('skipped %s: %s' % (r['video_id'], err))
+            continue
+        conn.execute('INSERT OR REPLACE INTO summaries VALUES (?, ?, ?, ?, ?)',
+                     (r['video_id'], value[0], value[1], name, now()))
+        conn.commit()
+        done += 1
+    prune(conn)
+    print('Summarized %d of %d videos with %s (%s)' % (done, len(rows), name, model))
+    return done
+
+
+def run_summarize(conn, config, provider, limit, dry_run, max_chars):
+    """CLI checks for summarize. Never calls an API unless llm.enabled or --provider says so."""
+    llm = config.get('llm') or {}
+    if not provider and not llm.get('enabled'):
+        print('error: LLM summaries are off. Set "llm": {"enabled": true, "provider": "..."} in config.json '
+              'or pass --provider NAME. Paid APIs cost money.', file=sys.stderr)
+        return 1
+    name = provider or llm.get('provider')
+    if name not in providers.PROVIDERS:
+        print('error: unknown provider %r, use one of: %s' % (name, ', '.join(sorted(providers.PROVIDERS))),
+              file=sys.stderr)
+        return 1
+    limit = limit or llm.get('limit') or 30
+    if dry_run:
+        rows = pending(conn, limit)
+        if rows:
+            print(build_prompt(rows[0], max_chars))
+        print('%d videos would be sent to %s (%s)' % (len(rows), name, providers.model_for(name)))
+        return 0
+    key = api_key(providers.PROVIDERS[name].KEY_ENV)
+    if not key:
+        print('error: %s is not set' % providers.PROVIDERS[name].KEY_ENV, file=sys.stderr)
+        return 1
+    summarize(conn, name, key, providers.model_for(name), limit, max_chars)
+    return 0
+
+
+def dumps(obj):
+    return json.dumps(obj, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+
+
+def month_lines(conn, month):
+    """Yield the archive lines for one month, in a stable order."""
+    for r in conn.execute("""
+            SELECT v.*, s.seo_title, s.seo_description, s.source, s.created_at FROM videos v
+            LEFT JOIN summaries s ON s.video_id = v.video_id
+            WHERE COALESCE(SUBSTR(v.first_seen, 1, 7), '0000-00') = ? ORDER BY v.video_id""", (month,)):
+        d = {c: r[c] for c in VIDEO_COLS}
+        d['type'] = 'video'
+        if r['seo_title'] is not None:
+            d['summary'] = {'seo_title': r['seo_title'], 'seo_description': r['seo_description'],
+                            'source': r['source'], 'created_at': r['created_at']}
+        yield dumps(d)
+    for r in conn.execute("SELECT * FROM runs WHERE COALESCE(SUBSTR(started_at, 1, 7), '0000-00') = ? "
+                          'ORDER BY id', (month,)):
+        yield dumps(dict(dict(r), type='run'))
+    for r in conn.execute("""
+            SELECT f.* FROM featured f LEFT JOIN runs r ON r.id = f.run_id
+            WHERE COALESCE(SUBSTR(r.started_at, 1, 7), '0000-00') = ?
+            ORDER BY f.run_id, f.lang, f.rank, f.video_id""", (month,)):
+        yield dumps(dict(dict(r), type='featured'))
+
+
+def backup(conn, folder=ARCHIVE_DIR):
+    """Write archive/YYYY-MM.jsonl (current month) and .jsonl.gz (closed months). Returns files changed."""
+    os.makedirs(folder, exist_ok=True)
+    current = datetime.datetime.utcnow().strftime('%Y-%m')
+    months = [r[0] for r in conn.execute("""
+        SELECT COALESCE(SUBSTR(first_seen, 1, 7), '0000-00') FROM videos
+        UNION SELECT COALESCE(SUBSTR(started_at, 1, 7), '0000-00') FROM runs ORDER BY 1""")]
+    changed = 0
+    for month in months:
+        plain = os.path.join(folder, month + '.jsonl')
+        closed = month < current
+        path = plain + '.gz' if closed else plain
+        tmp = path + '.tmp'
+        with open(tmp, 'wb') as raw:
+            # mtime=0 and no file name in the header, so the same data gives the same bytes
+            f = gzip.GzipFile(filename='', mode='wb', fileobj=raw, mtime=0) if closed else raw
+            for line in month_lines(conn, month):
+                f.write((line + '\n').encode('utf-8'))
+            if closed:
+                f.close()
+        if os.path.exists(path) and filecmp.cmp(tmp, path, shallow=False):
+            os.remove(tmp)
+        else:
+            os.replace(tmp, path)
+            changed += 1
+        if closed and os.path.exists(plain):
+            os.remove(plain)
+    print('Backed up %d months to %s (%d files changed)' % (len(months), folder, changed))
+    return changed
+
+
+def restore(conn, folder=ARCHIVE_DIR):
+    """Merge archive/ into the db. Safe to run every time: rows already in the db win unless older."""
+    if not os.path.isdir(folder):
+        return 0
+    cols = ', '.join(VIDEO_COLS)
+    marks = ', '.join('?' * len(VIDEO_COLS))
+    updates = ', '.join('%s = excluded.%s' % (c, c) for c in VIDEO_COLS[1:])
+    n = 0
+    for name in sorted(os.listdir(folder)):
+        path = os.path.join(folder, name)
+        if name.endswith('.jsonl.gz'):
+            f = gzip.open(path, 'rt', encoding='utf-8')
+        elif name.endswith('.jsonl'):
+            f = open(path, encoding='utf-8')
+        else:
+            continue
+        with f:
+            for line in f:
+                d = json.loads(line)
+                kind = d.get('type')
+                if kind == 'video':
+                    conn.execute('INSERT INTO videos (%s) VALUES (%s) ON CONFLICT(video_id) DO UPDATE SET %s '
+                                 'WHERE excluded.last_seen > videos.last_seen' % (cols, marks, updates),
+                                 [d.get(c) for c in VIDEO_COLS])
+                    s = d.get('summary')
+                    if s:
+                        conn.execute('INSERT OR IGNORE INTO summaries VALUES (?, ?, ?, ?, ?)',
+                                     (d['video_id'], s['seo_title'], s['seo_description'], s['source'],
+                                      s['created_at']))
+                        # summarized, so never fetch its transcript or comments again
+                        conn.execute('INSERT OR IGNORE INTO transcripts VALUES (?, NULL, ?)', (d['video_id'], now()))
+                        conn.execute("INSERT OR IGNORE INTO comments VALUES (?, '[]', ?)", (d['video_id'], now()))
+                elif kind == 'run':
+                    # shortcut: runs are keyed by id, two machines collecting into separate dbs would clash
+                    conn.execute('INSERT OR IGNORE INTO runs VALUES (?, ?, ?, ?)',
+                                 (d['id'], d['started_at'], d['finished_at'], d['params']))
+                elif kind == 'featured':
+                    conn.execute('INSERT OR IGNORE INTO featured VALUES (?, ?, ?, ?)',
+                                 (d['run_id'], d['lang'], d['rank'], d['video_id']))
+                n += 1
+        conn.commit()
+    print('Restored %d archive lines from %s' % (n, folder))
+    return n
 
 
 def stats(conn):
@@ -506,9 +645,14 @@ def main(argv=None):
     i.add_argument('path', nargs='?', default=os.path.join(ROOT, 'agent', 'outbox.json'))
     s = sub.add_parser('export-site', help='write the JSON the site reads')
     s.add_argument('--out', default=os.path.join(ROOT, 'src', 'data', 'site.json'))
-    l = sub.add_parser('import-legacy', help='import the old videos_metadata.json and sumarios_seo/')
-    l.add_argument('dir')
-    l.add_argument('--top', type=int, default=d['top'])
+    m = sub.add_parser('summarize', help='write missing summaries with an LLM API (off unless enabled)')
+    m.add_argument('--provider', choices=sorted(providers.PROVIDERS))
+    m.add_argument('--limit', type=int)
+    m.add_argument('--max-chars', type=int, default=d['transcript_chars'])
+    m.add_argument('--dry-run', action='store_true', help='print the first prompt and the count, no API call')
+    sub.add_parser('update', help='restore, collect, summarize or agent-export, export-site, backup')
+    sub.add_parser('backup', help='write the db to archive/ (one JSONL per month)')
+    sub.add_parser('restore', help='merge archive/ into the db')
     sub.add_parser('stats', help='show database counts')
     sub.add_parser('prune', help='drop transcripts and comments of summarized videos, then compact the db')
     args = p.parse_args(argv)
@@ -516,12 +660,24 @@ def main(argv=None):
         p.print_help()
         return 1
 
-    if args.cmd == 'collect':
+    if args.cmd in ('collect', 'update'):
         key = api_key()
         if not key:
             print('error: YOUTUBE_API_KEY is not set. Export it or put YOUTUBE_API_KEY=... in .env',
                   file=sys.stderr)
             return 1
+    if args.cmd == 'update':
+        conn = connect()
+        restore(conn)
+        collect(conn, config, key, d['top'], d['regions_per_lang'], list(config['languages']))
+        if (config.get('llm') or {}).get('enabled'):
+            run_summarize(conn, config, None, None, False, d['transcript_chars'])
+        else:
+            n = agent_export(conn, os.path.join(ROOT, 'agent', 'inbox.md'), 60, d['transcript_chars'])
+            print('%d videos waiting for the agent, see agent/AGENT.md' % n)
+        export_site(conn, config, os.path.join(ROOT, 'src', 'data', 'site.json'))
+        backup(conn)
+    elif args.cmd == 'collect':
         langs = [x.strip() for x in args.langs.split(',') if x.strip()]
         unknown = [x for x in langs if x not in config['languages']]
         if unknown:
@@ -535,8 +691,12 @@ def main(argv=None):
             return 1
     elif args.cmd == 'export-site':
         export_site(connect(), config, args.out)
-    elif args.cmd == 'import-legacy':
-        import_legacy(connect(), config, args.dir, args.top)
+    elif args.cmd == 'summarize':
+        return run_summarize(connect(), config, args.provider, args.limit, args.dry_run, args.max_chars)
+    elif args.cmd == 'backup':
+        backup(connect())
+    elif args.cmd == 'restore':
+        restore(connect())
     elif args.cmd == 'stats':
         stats(connect())
     elif args.cmd == 'prune':

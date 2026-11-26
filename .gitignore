@@ -13,7 +13,7 @@ __pycache__/
 .env
 .env.production
 
-# pipeline data (site.json is committed, the rest stays local)
+# pipeline data (site.json and archive/ are committed, the rest stays local)
 /data/
 agent/inbox.md
 agent/outbox*.json
