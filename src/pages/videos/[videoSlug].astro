@@ -1,356 +1,333 @@
 ---
-import videos from '../../data/videos_metadata.json' assert { type: 'json' };
-import { createSlug } from '../../utils/slug';
-import type { Astro } from 'astro';
+import Layout from '../../layouts/Layout.astro';
+import {
+  videoPages, type Video, excerpt, stripMarkdown, plainText, linkify, formatCount, formatDuration, formatDate, languageName, jsonLd,
+} from '../../utils/data';
 
-export interface SeoInfo {
-  seo_title: string;
-  seo_description: string;
+export function getStaticPaths() {
+  return videoPages.map((video) => ({ params: { videoSlug: video.slug }, props: { video } }));
 }
 
-export interface VideoInfo {
-  video_id: string;
-  title: string;
-  description: string;
-  channel_title: string;
-  published_at: string;
-  view_count: string;
-  like_count: string;
-  comment_count: string;
-  duration: string;
-  youtube_url: string;
-  thumbnail_file: string;
-  thumbnails: {
-    default?: { url: string };
-    medium?: { url: string };
-    high?: { url: string };
-    standard?: { url: string };
-    maxres?: { url: string };
-  };
-  transcript: string | null;
-  comments: string[];
-}
+const { video } = Astro.props as { video: Video };
 
-interface Props {
-  video: VideoInfo;
-  seoData: SeoInfo | null;
-}
+const pageTitle = video.seo_title || video.title || 'Popular YouTube video';
+const summary = video.seo_description ? stripMarkdown(video.seo_description) : '';
+const rawDescription = (video.description ?? '').trim();
+const descriptionParts = linkify(rawDescription);
+// Roughly more than 8 lines, collapse it behind a toggle.
+const longDescription = rawDescription.length > 500 || rawDescription.split('\n').length > 8;
+const metaDescription = excerpt(plainText(summary || rawDescription), 160) || pageTitle;
+const langName = languageName(video.lang);
 
-export async function getStaticPaths() {
-  const paths = [];
+const views = formatCount(video.view_count);
+const likes = formatCount(video.like_count);
+const duration = formatDuration(video.duration);
+const published = formatDate(video.published_at);
+const metaLine = [
+  views && `${views} views`,
+  likes && `${likes} likes`,
+  duration,
+  published,
+  video.channel_title && `By ${video.channel_title}`,
+].filter(Boolean).join(' · ');
 
-  for (const video of videos) {
-    let seoData: SeoInfo | null = null;
-    try {
-      const seoModule = await import(`../../data/sumarios_seo/${video.video_id}.json`);
-      seoData = seoModule.default;
-    } catch {
-      console.warn(`SEO file missing for video: ${video.video_id}`);
-    }
-
-    const videoSlug = `${video.video_id}-${createSlug(video.title)}`;
-
-    paths.push({
-      params: { videoSlug },
-      props: { video, seoData },
-    });
-  }
-
-  return paths;
-}
-
-const { video, seoData } = Astro.props;
-
-const pageTitle = seoData?.seo_title || video.title;
-const pageDescription = seoData?.seo_description || video.description;
-
-const pageDescriptionParsed = pageDescription
-  .replace(/\*\*(.*?)\*\*/g, '$1')
-  .replace(/\*(.*?)\*/g, '$1')
-
-const youtubeWatchUrl = `https://www.youtube.com/watch?v=${video.video_id}`;
-
-const dateObj = new Date(video.published_at);
-const formattedDate = dateObj.toLocaleString('en-US', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-});
-
-const thumbnailSrc = video.thumbnails?.maxres?.url || video.thumbnail_file;
+const site = 'https://videos.rapidmov.online';
+const breadcrumb = {
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'RapidMov', item: `${site}/` },
+    { '@type': 'ListItem', position: 2, name: langName, item: `${site}/lang/${video.lang}` },
+    { '@type': 'ListItem', position: 3, name: video.title || pageTitle },
+  ],
+};
+const videoObject = {
+  '@type': 'VideoObject',
+  name: video.title || pageTitle,
+  description: metaDescription,
+  thumbnailUrl: video.thumbnail_url || undefined,
+  uploadDate: video.published_at || undefined,
+  duration: video.duration || undefined,
+  embedUrl: `https://www.youtube.com/embed/${video.video_id}`,
+  interactionStatistic: {
+    '@type': 'InteractionCounter',
+    interactionType: { '@type': 'WatchAction' },
+    userInteractionCount: video.view_count,
+  },
+};
+const schema = { '@context': 'https://schema.org', '@graph': [breadcrumb, videoObject] };
 ---
 
-<!DOCTYPE html>
-<html lang="en" class="dark">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
-    <title>{pageTitle}</title>
-    <meta name="description" content={pageDescription} />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
-    
-    <style>
-      :root {
-        --color-primary: #ff0000;
-        --color-bg: #131313;
-        --color-text: #fff;
-        --color-border: #444;
-      }
-
-      html {
-        font-family: 'Roboto', system-ui, sans-serif;
-        background-color: var(--color-bg);
-        color: var(--color-text);
-        /* overflow-x: hidden; */
-      }
-
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-      }
-      
-      main.container {
-        max-width: 700px;
-        margin: auto;
-        padding: 1.5rem;
-      }
-
-      h1, h2, h3 {
-        font-weight: 700;
-        color: var(--color-text);
-      }
-
-      p {
-        font-weight: 400;
-      }
-      .description-text {
-        max-width: 100%;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-      }
-      .description-container {
-        margin-top: 0.5rem;
-        color: #ccc;
-        line-height: 1.3;
-        background-color: rgba(0, 0, 0, 0.4);
-        padding: 1rem;
-        border-radius: 8px;
-        filter : brightness(140%);
-        width: 110%;
-        margin-left: -10%;
-        margin-right: -10%;
-      }
-
-      img.thumbnail {
-        max-width: 100%;
-        height: auto;
-        display: block;
-        margin: 0 auto 1.5rem auto;
-        border-radius: 8px;
-      }
-
-      .buttons-container {
-        display: flex;
-        justify-content: center;
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-      }
-    .thumbnail-wrapper {
-      position: relative;
-      max-width: 700px;
-      width: 100%;
-      margin: 0 auto 1.2rem auto;
-      border-radius: 20px;
-      box-sizing: border-box;
-    }
-
-    .thumbnail-blur {
-      position: fixed; /* Fixed to viewport*/
-      top: 40%; 
-      left: 50%;
-      width: 120vw;
-      height: auto;
-      filter: blur(30px);
-      opacity: 0.3;
-      pointer-events: none;
-      transform: translate(-50%, -50%);
-      z-index: -1;
-    }
-
-    .thumbnail {
-      position: relative;
-      z-index: 1;
-      max-width: 100%;
-      height: auto;
-      border-radius: 8px;
-      display: block;
-      margin: 0 auto;
-      box-sizing: border-box;
-    }
-
-
-      @media (max-width: 900px) {
-        .video-title {
-          font-size: 1rem;
-        }
-
-        .description-container {
-          width: 90%;
-          margin-left: 1%;
-          margin-right: 1%;
-          background-color: rgba(0, 0, 0, 0.6);
-        }
-        
-
-        .buttons-container {
-          flex-direction: column;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        button.btn {
-          width: 100%;
-          max-width: 300px;
-          font-size: 1.25rem;
-          padding: 0.75rem 1rem;
-        }
-
-        a.btn {
-          width: auto;
-          max-width: 250px;
-          font-size: 1rem;
-          padding: 0.75rem 1rem;
-          align-self: center;
-        }
-        .thumbnail-blur {
-          position: fixed;
-          top: 45%;
-          left: 50%;
-          width: 200%;
-          filter: blur(30px);
-          opacity: 0.4;
-          z-index: -1;
-          pointer-events: none;
-          transform: scale(1.2) translate(-40%, -45%);
-        }
-
-      }
-      
-      @media (min-width: 600px) and (max-width: 1200px) {
-        .video-title {
-          font-size: 1.2rem;
-        }
-
-      }
-
-      @media (min-width: 1200px) {
-        .thumbnail-blur {
-          opacity: 0.2;
-          filter: blur(40px);
-        }
-        .description-container {
-        width: 140%;
-        margin-left: -20%;
-        margin-right: -20%;
-        }
-        .description-text {
-          padding-left: 2.5%;
-          padding-right: 2.5%;
-        }
-                .video-title {
-          font-size: 1.4rem;
-        }
-      }
-
-      .description-text {
-        margin-top: 5px;
-      }
-
-      a.btn, button.btn {
-        font-weight: 700;
-        border-radius: 8px;
-        font-size: 1.5rem;
-        padding: 0.75rem 2rem;
-        min-width: 180px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-decoration: none;
-        color: #fff;
-        border: none;
-        font-family: 'Roboto', sans-serif;
-        transition: background-color 0.3s ease;
-      }
-
-      a.btn {
-        background-color: var(--color-primary);
-      }
-
-      a.btn:hover {
-        background-color: #cc0000;
-      }
-
-      button.btn {
-        background-color: #555;
-      }
-
-      button.btn:hover {
-        background-color: #333;
-      }
-  </style>
-
-  </head>
-  <body>
-    <main class="container">
-
+<Layout title={`${pageTitle} - RapidMov`} description={metaDescription} image={video.thumbnail_url || undefined} type="video.other" lang={video.lang}>
+  <script is:inline slot="head" type="application/ld+json" set:html={jsonLd(schema)} />
+  <main class="container">
+    {video.thumbnail_url && (
       <div class="thumbnail-wrapper">
-        <img src={thumbnailSrc} alt={video.title} class="thumbnail-blur" />
-        <img src={thumbnailSrc} alt={video.title} class="thumbnail" />
+        <img src={video.thumbnail_url} alt="" aria-hidden="true" class="thumbnail-blur" width="1280" height="720" />
+        <img src={video.thumbnail_url} alt={video.title || pageTitle} class="thumbnail" width="1280" height="720" />
       </div>
+    )}
 
-      <h1 class="video-title" style="text-align: center; margin-bottom:1rem;">{pageTitle}</h1>
-      <!-- <p style="text-align: center; margin: 0; margin-bottom:.4rem">By {video.channel_title}</p> -->
-      <p style="text-align: center; font-size: 0.95rem; color: #ccc;
-      margin: 0; margin-bottom:1rem;">
-      👁️ {video.view_count} views · 🗓️ {formattedDate} · ✍️ By {video.channel_title}
-      </p>
+    <p class="badges">
+      <a href={`/lang/${video.lang}`} class="badge">#{video.rank} in {langName}</a>
+      {video.times_featured > 0 && (
+        <span class="badge muted">Featured {video.times_featured} {video.times_featured === 1 ? 'time' : 'times'}</span>
+      )}
+    </p>
 
-      <div class="buttons-container">
-        <a
-          href={youtubeWatchUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          class="btn"
-          aria-label="Watch this video on YouTube"
-        >
-          Watch on YouTube
-        </a>
+    <h1 class="video-title">{pageTitle}</h1>
+    {metaLine && <p class="meta-line">{metaLine}</p>}
 
-        <button
-          class="btn"
+    <div class="buttons-container">
+      <a href={video.youtube_url} target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+        <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5.5v13l11-6.5z" /></svg>
+        Watch on YouTube
+      </a>
+      <a href={`/lang/${video.lang}`} class="btn btn-glass">More in {langName}</a>
+    </div>
 
-          onclick="
-            if (document.referrer && document.referrer.startsWith(window.location.origin)) {
-              window.history.back();
-            } else {
-              window.location.href = '/';
-            }
-          ">
-          Go
-          back
-        </button>
+    {summary && <p class="summary">{summary}</p>}
 
-      </div>
+    {rawDescription && (
+      <section class="description-container" aria-labelledby="desc-title">
+        <h2 id="desc-title">Description</h2>
+        {longDescription && <input type="checkbox" id="desc-toggle" class="desc-toggle" />}
+        <p id="desc-text" class:list={['description-text', { clamped: longDescription }]}>
+          {descriptionParts.map((part) =>
+            'href' in part
+              ? <a href={part.href} target="_blank" rel="nofollow ugc noopener noreferrer" title={part.href}>{part.label}</a>
+              : part.text
+          )}
+        </p>
+        {longDescription && (
+          <label for="desc-toggle" class="desc-more">
+            <span class="more">Show more</span><span class="less">Show less</span>
+            <svg class="chevron" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          </label>
+        )}
+      </section>
+    )}
+  </main>
+</Layout>
 
-      <div class="description-container">
-        <p class="description-text" style="white-space: pre-line;">{pageDescriptionParsed}</p>
-      </div>
+<style>
+  main.container {
+    width: 100%;
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 1.5rem 16px;
+    box-sizing: border-box;
+  }
 
-    </main>
-  </body>
-</html>
+  .thumbnail-wrapper {
+    position: relative;
+    width: 100%;
+    margin: 0 auto 1.2rem;
+  }
+
+  .thumbnail-blur {
+    position: fixed;
+    top: 40%;
+    left: 50%;
+    width: 120vw;
+    height: auto;
+    filter: blur(30px);
+    opacity: 0.3;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    z-index: -1;
+  }
+
+  .thumbnail {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius);
+    display: block;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+  }
+
+  .badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 0;
+  }
+
+  .badge {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+  }
+
+  .badge.muted {
+    background: var(--color-card-bg);
+    border: 1px solid var(--color-border);
+  }
+
+  .video-title {
+    text-align: center;
+    margin: var(--space-4) 0 var(--space-2);
+    font-size: clamp(1.2rem, 0.9rem + 1.4vw, 1.9rem);
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+  }
+
+  .meta-line {
+    text-align: center;
+    font-size: 0.95rem;
+    color: var(--color-muted);
+    margin: 0 0 var(--space-5);
+  }
+
+  .buttons-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: var(--space-6);
+  }
+
+  .buttons-container .btn {
+    font-size: 1.05rem;
+    padding: 0.85rem 1.8rem;
+    min-width: 200px;
+  }
+
+  .summary {
+    color: var(--color-soft);
+    font-size: 1.05rem;
+    line-height: 1.65;
+    margin: 0 0 var(--space-5);
+  }
+
+  .description-container {
+    color: var(--color-soft);
+    line-height: 1.6;
+    background: rgba(23, 23, 28, 0.72);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--color-border);
+    padding: var(--space-5);
+    border-radius: var(--radius);
+  }
+
+  .description-container h2 {
+    margin: 0 0 var(--space-3);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-muted);
+  }
+
+  .description-text {
+    margin: 0;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+  }
+
+  .description-text a {
+    color: #ff8a80;
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 138, 128, 0.4);
+    text-underline-offset: 3px;
+  }
+
+  .description-text a:hover {
+    color: #fff;
+    text-decoration-color: currentColor;
+  }
+
+  /* Collapsed text stays in the DOM, so screen readers still get all of it. */
+  .clamped {
+    max-height: 13.5em;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, #000 65%, transparent);
+    mask-image: linear-gradient(to bottom, #000 65%, transparent);
+  }
+
+  .desc-toggle:checked ~ .clamped {
+    max-height: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .desc-toggle {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+  }
+
+  .desc-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    width: min(100%, 340px);
+    margin: var(--space-4) auto 0;
+    padding: 0.7rem 1rem;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--color-text);
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .desc-more:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .chevron {
+    opacity: 0;
+    transition: opacity 0.15s ease, transform 0.2s ease;
+  }
+
+  .desc-more:hover .chevron,
+  .desc-toggle:focus-visible ~ .desc-more .chevron {
+    opacity: 1;
+  }
+
+  .desc-toggle:checked ~ .desc-more .chevron {
+    transform: rotate(180deg);
+  }
+
+  /* No hover on touch screens, so keep the arrow visible there. */
+  @media (hover: none) {
+    .chevron {
+      opacity: 1;
+    }
+  }
+
+  .desc-toggle:focus-visible ~ .desc-more {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  .less,
+  .desc-toggle:checked ~ .desc-more .more {
+    display: none;
+  }
+
+  .desc-toggle:checked ~ .desc-more .less {
+    display: inline;
+  }
+
+  @media (max-width: 600px) {
+    .buttons-container .btn {
+      width: 100%;
+      max-width: 320px;
+      min-width: 0;
+      font-size: 1rem;
+    }
+  }
+</style>

@@ -1,0 +1,97 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { languages, updatedAt, formatDate, jsonLd } from '../utils/data';
+
+const updated = formatDate(updatedAt);
+const total = languages.reduce((n, l) => n + l.count, 0);
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'AboutPage',
+  name: 'About RapidMov',
+  url: 'https://videos.rapidmov.online/about',
+  mainEntity: {
+    '@type': 'WebSite',
+    name: 'RapidMov',
+    url: 'https://videos.rapidmov.online/',
+    author: { '@type': 'Person', name: 'AESMatias', url: 'https://github.com/AESMatias' },
+  },
+};
+---
+
+<Layout title="About RapidMov - How the rankings work" description="What RapidMov is, where the data comes from, how often it updates and how videos are ranked in each language.">
+  <script is:inline slot="head" type="application/ld+json" set:html={jsonLd(schema)} />
+  <main class="about">
+    <h1>About RapidMov</h1>
+    <p class="lead">
+      RapidMov shows the most popular YouTube videos in each language, so you can see what people are watching in
+      {languages.length > 0 ? ` ${languages.map((l) => l.name).join(', ')}` : ' several languages'} without switching countries.
+    </p>
+
+    <h2>Where the data comes from</h2>
+    <p>
+      Every update reads YouTube's own trending charts from several countries per language, through the official
+      YouTube Data API. Videos are grouped by their audio language, so a Hindi video and an English video from the same
+      country never end up in the same list.
+    </p>
+
+    <h2>How videos are ranked</h2>
+    <p>
+      Inside each language, videos are sorted by views and the top 30 are shown. A video that keeps trending stays on the
+      list and its counter goes up ("Featured N times"), instead of appearing twice.
+    </p>
+
+    <h2>Summaries</h2>
+    <p>
+      Each video gets a short summary written from its title, description, transcript and top comments, in the video's
+      own language. The original description is always shown below it, with its links.
+    </p>
+
+    <h2>How often it updates</h2>
+    <p>
+      Once or twice a week.
+      {updated && <> The last update was on <time datetime={updatedAt}>{updated}</time>{total > 0 && `, with ${total} videos`}.</>}
+    </p>
+
+    <h2>Who makes it</h2>
+    <p>
+      RapidMov is built by <a href="https://github.com/AESMatias" target="_blank" rel="noopener">AESMatias</a>.
+      It is not affiliated with YouTube or Google. All videos, titles and thumbnails belong to their creators.
+    </p>
+
+    <p class="back"><a href="/" class="btn btn-primary">See popular videos</a></p>
+  </main>
+</Layout>
+
+<style>
+  .about {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: var(--space-7) var(--gutter);
+    line-height: 1.7;
+  }
+  h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    letter-spacing: -0.03em;
+    margin: 0 0 var(--space-4);
+  }
+  h2 {
+    font-size: 1.2rem;
+    margin: var(--space-6) 0 var(--space-2);
+  }
+  p {
+    color: var(--color-soft);
+    margin: 0;
+  }
+  .lead {
+    font-size: 1.15rem;
+    color: var(--color-text);
+  }
+  a:not(.btn) {
+    color: var(--color-text);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .back {
+    margin-top: var(--space-7);
+  }
+</style>

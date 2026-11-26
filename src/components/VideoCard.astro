@@ -1,310 +1,345 @@
 ---
-import { createSlug } from '../utils/slug';
+import { type Video, excerpt, stripMarkdown, plainText, formatCount, formatDuration } from '../utils/data';
 
-export interface VideoInfo {
-  video_id: string;
-  title: string;
-  description: string;
-  channel_title: string;
-  published_at: string;
-  view_count: string;
-  like_count: string;
-  comment_count: string;
-  duration: string;
-  youtube_url: string; // Remember, if there is not thumbnail_file, this will be used
-  thumbnail_file: string;
-  thumbnails: {
-    default?: { url: string };
-    medium?: { url: string };
-    high?: { url: string };
-    standard?: { url: string };
-    maxres?: { url: string };
-  };
-  transcript: string | null;
-  comments: string[];
+interface Props {
+  video: Video;
+  eager?: boolean;
 }
 
-export interface SeoInfo {
-  seo_title: string;
-  seo_description: string;
-}
+const { video, eager = false } = Astro.props;
 
-export interface Props {
-  video: VideoInfo;
-  seo: SeoInfo;
-}
-
-const { video, seo } = Astro.props;
-
-const descriptionToShow = seo.seo_description || video.description;
-const thumbnailForBase = video.thumbnail_file || video.thumbnails?.maxres?.url ||
- video.thumbnails?.standard?.url || video.thumbnails?.high?.url ||
- video.thumbnails?.medium?.url || video.thumbnails?.default?.url;
-
-const detailPageUrl = `/videos/${video.video_id}-${createSlug(video.title)}`;
-const youtubeLink = `https://www.youtube.com/watch?v=${video.video_id}`;
+const title = video.title || 'Untitled video';
+// capped so the cards stay light
+const descriptionToShow = excerpt(plainText(stripMarkdown(video.seo_description || video.description || '')), 900);
+const views = formatCount(video.view_count);
+const duration = formatDuration(video.duration);
+const detailPageUrl = `/videos/${video.slug}`;
 ---
 
 <div class="video-card-wrapper">
-  <div class="video-card" data-video-id={video.video_id}>
-    <a href={detailPageUrl} class="thumbnail-link">
+  <article class="video-card" data-video-id={video.video_id}>
+    <a href={detailPageUrl} class="thumbnail-link" tabindex="-1" aria-hidden="true">
       <div class="thumbnail-wrapper">
-        <img
-          src={thumbnailForBase}
-          alt={`Thumbnail de ${video.title}`}
-          width="480" height="270"
-          loading="lazy"
-          decoding="async"
-          class="thumbnail-base"
-        />
-        {video.thumbnail_file && (
+        {video.thumbnail_url && (
           <img
-            src={video.thumbnail_file}
-            alt={`Hover thumbnail de ${video.title}`}
+            src={video.thumbnail_url}
+            alt={`${title} thumbnail`}
             width="480" height="270"
-            loading="lazy"
+            loading={eager ? 'eager' : 'lazy'}
+            fetchpriority={eager ? 'high' : 'auto'}
             decoding="async"
-            class="thumbnail-hover"
-            aria-hidden="true"
+            class="thumbnail-base"
           />
         )}
+        <span class="badge rank">#{video.rank}</span>
+        {duration && <span class="badge duration">{duration}</span>}
       </div>
     </a>
 
     <div class="video-info">
       <a href={detailPageUrl} class="title-link">
-        <h3>{video.title}</h3>
+        <h3>{title}</h3>
       </a>
-      <p class="channel-info">{video.channel_title}</p>
+      <p class="meta">
+        <span class="channel">{video.channel_title}</span>
+        {views && <span class="views">{views} views</span>}
+      </p>
 
-      <div class="description-area">
-        <!-- <p class="description-short">{shortDescription}</p> -->
-        <p class="description-full">{descriptionToShow}</p>
+      {descriptionToShow && <p class="description">{descriptionToShow}</p>}
+
+      <div class="actions">
+        <a href={video.youtube_url} target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm yt-btn">
+          <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5.5v13l11-6.5z" /></svg>
+          Watch on YouTube<span class="visually-hidden">: {title} (opens in a new tab)</span>
+        </a>
+        <a href={detailPageUrl} class="btn btn-glass btn-sm details-btn" title="Summary and details">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" /><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2" /></svg>
+          <span class="visually-hidden">Details: {title}</span>
+        </a>
       </div>
-
-      <a href={youtubeLink} target="_blank" rel="noopener noreferrer" class="youtube-button-link">
-        <button>
-          Watch on YouTube
-        </button>
-      </a>
     </div>
-  </div>
+  </article>
 </div>
+
+<script>
+  // zoom the hovered card and keep it 12px inside the viewport
+  const MARGIN = 12;
+  const canZoom = matchMedia('(hover: hover) and (min-width: 768px)');
+  const root = document.documentElement;
+
+  const open = (wrapper: HTMLElement) => {
+    if (!canZoom.matches || wrapper.classList.contains('is-open')) return;
+    const card = wrapper.querySelector<HTMLElement>('.video-card')!;
+    wrapper.classList.add('is-open');
+    card.style.setProperty('--dx', '0px');
+    card.style.setProperty('--dy', '0px');
+
+    // offsetHeight ignores transforms, so scale it ourselves
+    const box = wrapper.getBoundingClientRect();
+    const scale = parseFloat(getComputedStyle(card).getPropertyValue('--zoom')) || 1;
+    const w = box.width * scale;
+    const h = card.offsetHeight * scale;
+    const left = box.left + box.width / 2 - w / 2;
+    const vw = root.clientWidth;
+    const vh = innerHeight;
+
+    let dx = 0;
+    if (left < MARGIN) dx = MARGIN - left;
+    else if (left + w > vw - MARGIN) dx = vw - MARGIN - (left + w);
+    let dy = 0;
+    if (box.top + h > vh - MARGIN) dy = vh - MARGIN - (box.top + h);
+    if (box.top + dy < MARGIN) dy = MARGIN - box.top;
+
+    card.style.setProperty('--dx', `${dx}px`);
+    card.style.setProperty('--dy', `${dy}px`);
+    root.style.setProperty('--dim-x', `${box.left + box.width / 2 + dx}px`);
+    root.style.setProperty('--dim-y', `${box.top + h / 2 + dy}px`);
+    root.classList.add('card-open');
+  };
+
+  // grow down into free space only, so the text being read stays put
+  const grow = (wrapper: HTMLElement, desc: HTMLElement) => {
+    if (desc.dataset.grown || !wrapper.classList.contains('is-open')) return;
+    desc.dataset.grown = '1';
+    root.classList.add('card-reading');
+    const card = wrapper.querySelector<HTMLElement>('.video-card')!;
+    const scale = parseFloat(getComputedStyle(card).getPropertyValue('--zoom')) || 1;
+    const room = (innerHeight - MARGIN - card.getBoundingClientRect().bottom) / scale;
+    desc.style.maxHeight = `${desc.clientHeight + Math.max(0, Math.min(room, 170))}px`;
+  };
+
+  const close = (wrapper: HTMLElement) => {
+    wrapper.classList.remove('is-open');
+    const desc = wrapper.querySelector<HTMLElement>('.description');
+    if (desc) {
+      desc.style.maxHeight = '';
+      desc.scrollTop = 0;
+      delete desc.dataset.grown;
+    }
+    if (!document.querySelector('.video-card-wrapper.is-open')) root.classList.remove('card-open', 'card-reading');
+  };
+
+  for (const wrapper of document.querySelectorAll<HTMLElement>('.video-card-wrapper')) {
+    const desc = wrapper.querySelector<HTMLElement>('.description');
+    desc?.addEventListener('scroll', () => grow(wrapper, desc), { passive: true });
+    wrapper.addEventListener('pointerenter', (e) => e.pointerType === 'mouse' && open(wrapper));
+    wrapper.addEventListener('pointerleave', () => close(wrapper));
+    wrapper.addEventListener('focusin', () => open(wrapper));
+    wrapper.addEventListener('focusout', (e) => {
+      if (!wrapper.contains(e.relatedTarget as Node | null)) close(wrapper);
+    });
+  }
+  // positions go stale once the page scrolls
+  addEventListener('scroll', () => document.querySelectorAll<HTMLElement>('.video-card-wrapper.is-open').forEach(close), { passive: true });
+</script>
 
 <style>
   .video-card-wrapper {
     position: relative;
-    width: 100%;
-    height: 250px;
+    height: 100%;
+    min-width: 0;
   }
 
   .video-card {
-    background-color: var(--color-card-bg);
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    border: 1px solid transparent;
+    --zoom: 1.15;
+    height: 100%;
     display: flex;
     flex-direction: column;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
-    transition: transform 0.1s ease, box-shadow 0.1s ease, height 0.1s ease-in-out, z-index 0s 0.1s, border-color 0.1s ease;
+    background: var(--color-card-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
   }
 
   .thumbnail-link {
     display: block;
-    width: 100%;
-    height: 175px;
   }
 
   .thumbnail-wrapper {
-    width: 100%;
-    height: 140px;
-    overflow: hidden;
     position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: #111;
   }
 
   .thumbnail-base {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+
+  .badge {
     position: absolute;
-    top: 0;
-    left: 0;
-    transition: transform 0.1s ease;
+    z-index: 1;
+    padding: 2px 7px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.78);
+  }
+  .rank {
+    top: 8px;
+    left: 8px;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+  .duration {
+    right: 8px;
+    bottom: 8px;
   }
 
   .video-info {
-    padding: 10px 15px 35px 15px;
+    flex: 1;
     display: flex;
     flex-direction: column;
-    flex-grow: 1;
-    overflow: hidden;
-    gap: 0.1rem;
+    gap: var(--space-1);
+    padding: var(--space-3) var(--space-4) var(--space-4);
+    min-width: 0;
   }
 
   .title-link {
-    text-decoration: none;
     color: inherit;
-    font-size: 0.8rem;
-    font-weight: bold;
+    border-radius: 4px;
   }
 
   h3 {
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
     display: -webkit-box;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 1;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: normal;
-    max-height: 2.8em;
-    margin: 5px;
-  }
-
-  h3:hover {
-    -webkit-line-clamp: 1;
+    overflow-wrap: anywhere;
+    min-height: 2.6em;
   }
 
   .title-link:hover h3 {
     text-decoration: underline;
+    text-underline-offset: 3px;
   }
 
-  .channel-info {
-    font-size: 0.8rem;
-    color: #aaaaaa;
+  .meta {
     margin: 0;
-    margin-left: 5px;
-
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    min-height: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--space-2);
+    font-size: 0.82rem;
+    color: var(--color-muted);
+    min-width: 0;
+  }
+  .channel {
+    overflow: hidden;
     text-overflow: ellipsis;
-    overflow: hidden;
-    max-width: 9rem;
     white-space: nowrap;
+    max-width: 100%;
+  }
+  .views::before {
+    content: '·';
+    margin-right: var(--space-2);
   }
 
-  .description-area {
-    position: relative;
-    flex-grow: 1;
-    overflow: hidden;
-  }
-
-  .description-full {
+  .description {
+    margin: var(--space-1) 0 var(--space-3);
+    font-size: 0.86rem;
+    line-height: 1.45;
+    color: var(--color-soft);
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     overflow: hidden;
-    font-size: 0.8rem;
-    color: #ccc;
-    line-height: 1;
-    max-height: 150px;
-    transition: opacity 0.3s ease;
+    overflow-wrap: anywhere;
   }
 
-  .youtube-button-link {
+  .actions {
     margin-top: auto;
-    align-self: center;
-    display: block;
-    width: fit-content;
-    text-align: center;
-    /* el texto se ve en una linea  */
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    display: flex;
+    gap: var(--space-2);
+  }
+  .yt-btn {
+    flex: 1;
+    justify-content: center;
+  }
+  .details-btn {
+    flex: none;
+    width: 38px;
+    padding: 0;
+    justify-content: center;
+    border-radius: var(--radius-sm);
   }
 
-  .youtube-button-link button {
-    background-color: var(--color-primary);
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-
-    background-color: rgb(209, 16, 16);
-    color: white; 
-    border: none;
-    padding: .5rem 1rem; 
-    border-radius: 4px; 
-    font-size: 1.2rem; font-weight: 900; /* Just in mobile */
-  }
-
-  .youtube-button-link button:hover {
-    background-color: #cc0000;
-  }
-
-  /* DESKTOP-ONLY */
+  /* zoom on hover only with a mouse and enough room */
   @media (hover: hover) and (min-width: 768px) {
-    .video-card-wrapper .video-card {
-      transform: none;
-      box-shadow: none;
-      border-color: transparent;
-      min-height: initial;
-      min-width: initial;
+    .video-card-wrapper {
+      height: 290px;
+    }
+    .video-card {
+      position: absolute;
+      inset: 0;
       z-index: 1;
-      overflow: hidden;
-      transition: none;
+      transform-origin: center top;
+      transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.22s ease, border-color 0.22s ease;
     }
-
-    .video-card-wrapper:hover .video-card {
-      transform: translateY(-5px) scale(1.2);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-      border: 0.5px solid #c5c5c575;
-      min-height: 400px;
-      min-width: 350px;
-      z-index: 10;
-      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.5s ease;
-    }
-
-    .video-card-wrapper .thumbnail-base {
-      transition: transform 0.2s ease;
-    }
-
-    .video-card-wrapper:hover .thumbnail-base {
-      transform: scale(1.1);
-    }
-
-    .video-card-wrapper:hover .stats {
-      display: block;
-      opacity: 1;
-      transition: opacity 0.2s ease 0.1s;
-    }
-
-    .video-card-wrapper .stats {
-      opacity: 0;
-      transition: opacity 0.2s ease;
-    }
-
-    .video-card-wrapper .description-full {
-      opacity: 0;
+    .description {
       display: none;
-      transition: none;
     }
 
-    .video-card-wrapper:hover .description-full {
-      opacity: 1;
-      display: -webkit-box;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 3;
-      transition: opacity 0.2s ease;
+    .is-open .video-card {
+      bottom: auto;
+      height: auto;
+      min-height: 100%;
+      z-index: 45;
+      transform: translate(var(--dx, 0), var(--dy, 0)) scale(var(--zoom));
+      border-color: rgba(255, 255, 255, 0.22);
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.4),
+        0 18px 50px rgba(0, 0, 0, 0.65);
     }
-    .video-card-wrapper .youtube-button-link button {
-      font-size: .8rem; font-weight: 900;
+    /* fade the bottom edge into the shadow */
+    .is-open .video-card::after {
+      content: '';
+      position: absolute;
+      inset: auto 0 0;
+      height: 18px;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.35), transparent);
+      pointer-events: none;
     }
-
-    .video-card-wrapper:hover .youtube-button-link button {
-      background-color: #ff0404;
-      transform: scale(1.3);
-      transition: transform 0.2s cubic-bezier(0.23, 1, 0.320, 1);
+    .is-open .description {
+      display: block;
+      -webkit-line-clamp: unset;
+      line-clamp: none;
+      max-height: 6.6em;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+      padding-right: 4px;
+      transition: max-height 0.25s ease;
     }
-
-    .video-card-wrapper:hover .thumbnail-wrapper {
-      height: 200px;
-      transition: height 0.2s cubic-bezier(0.23, 1, 0.320, 1);
+    .is-open .thumbnail-base {
+      transform: scale(1.05);
     }
-    .video-card-wrapper:hover .video-info {
-      margin-top: 1.5rem;
   }
-}
+
+  @media (prefers-reduced-motion: reduce) {
+    .video-card {
+      --zoom: 1;
+    }
+    .is-open .thumbnail-base {
+      transform: none;
+    }
+  }
+
+  .video-card:has(.title-link:focus-visible) {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
 </style>

@@ -1,0 +1,31 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import VideoCard from '../../components/VideoCard.astro';
+import { languages, videosByLang, type Language } from '../../utils/data';
+
+export function getStaticPaths() {
+  return languages.map((lang) => ({ params: { code: lang.code }, props: { lang } }));
+}
+
+const { lang } = Astro.props as { lang: Language };
+const list = videosByLang(lang.code);
+---
+
+<Layout
+  title={`Popular YouTube videos in ${lang.name} - RapidMov`}
+  description={`The ${list.length} most popular YouTube videos in ${lang.name} right now, ranked.`}
+>
+  <main class="page">
+    <div class="hero">
+      <h1 class="page-title">Popular in <span class="gradient-text">{lang.name}</span></h1>
+      <p class="subtitle">The {list.length} most watched YouTube videos in {lang.name} this week, ranked.</p>
+    </div>
+    {list.length > 0 ? (
+      <section class="video-grid" lang={lang.code}>
+        {list.map((video, i) => <VideoCard video={video} eager={i < 4} />)}
+      </section>
+    ) : (
+      <p class="empty-state">No videos for this language yet, check back after the next refresh.</p>
+    )}
+  </main>
+</Layout>

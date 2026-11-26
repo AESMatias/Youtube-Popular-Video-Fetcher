@@ -1,88 +1,523 @@
 ---
-import type { Astro } from 'astro';
+import SeoHead from '../components/SeoHead.astro';
+import { languages, updatedAt, formatDate } from '../utils/data';
 
 interface Props {
   title: string;
   description?: string;
+  image?: string;
+  canonical?: string;
+  type?: string;
+  lang?: string;
+  noindex?: boolean;
 }
 
-const { title, description = "Discover the most popular YouTube videos in the world." } = Astro.props;
+const { title, description = "The most popular YouTube videos by language, updated weekly.", image, canonical, type, lang = 'en', noindex } = Astro.props;
+const currentPath = Astro.url.pathname.replace(/(.)\/$/, '$1');
+const updatedLabel = formatDate(updatedAt);
+const year = new Date().getUTCFullYear();
 ---
 
 <!doctype html>
-<html lang="en" class="dark">
+<html lang={lang} class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#0e0e11" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
     <meta name="generator" content={Astro.generator} />
-    <title>{title}</title>
-    <meta name="description" content={description} />
+    <SeoHead title={title} description={description} image={image} canonical={canonical} type={type} noindex={noindex} />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<!-- //TODO: WE NEED TO DOWNLOAD THE ROBOTO FONT FILE! -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    <!-- Open Graph -->
-    <meta property="og:title" content="Veritres - Popular YouTube Videos - AI-Powered Discovery" />
-    <meta property="og:description" content="Discover the most popular YouTube videos with AI-generated descriptions." />
-    <meta property="og:image" content="https://veritres.com/thumbnail.jpg" />
-    <meta property="og:image:type" content="image/jpeg" />
-    <meta property="og:url" content="https://veritres.com/" />
-    <meta property="og:type" content="website" />
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Veritres - Popular YouTube Videos - AI-Powered Discovery" />
-    <meta name="twitter:description" content="Discover the most popular YouTube videos with AI-generated descriptions." />
-    <meta name="twitter:image" content="https://veritres.com/thumbnail.jpg" />
-
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <slot name="head" />
   </head>
   <body>
-    <slot />
+    <a href="#main" class="skip-link">Skip to content</a>
+    <header class="site-header">
+      <div class="header-inner">
+        <a href="/" class="brand" aria-label="RapidMov home">
+          <svg class="brand-mark" viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
+            <defs>
+              <linearGradient id="rm-grad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#ff3b30" />
+                <stop offset="1" stop-color="#b3000c" />
+              </linearGradient>
+            </defs>
+            <rect width="32" height="32" rx="9" fill="url(#rm-grad)" />
+            <path d="M12 9.5v13l10.5-6.5z" fill="#fff" />
+          </svg>
+          <span class="brand-word">Rapid<span>Mov</span></span>
+        </a>
+        {languages.length > 0 && (
+          <nav class="lang-nav" aria-label="Languages">
+            {languages.map((l) => {
+              const href = `/lang/${l.code}`;
+              return (
+                <a href={href} class="chip" aria-current={currentPath === href ? 'page' : undefined}>
+                  {l.name} <span class="chip-count">{l.count}</span>
+                </a>
+              );
+            })}
+          </nav>
+        )}
+      </div>
+    </header>
+    <div id="main" class="main-wrap">
+      <slot />
+    </div>
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <a href="/" class="brand">
+            <span class="brand-word">Rapid<span>Mov</span></span>
+          </a>
+          <p>The most popular YouTube videos in each language, collected and ranked every week.</p>
+          <p class="updated">
+            {updatedLabel
+              ? <>Last updated <time datetime={updatedAt}>{updatedLabel}</time></>
+              : 'Not updated yet'}
+          </p>
+        </div>
+        {languages.length > 0 && (
+          <nav class="footer-col" aria-label="Languages">
+            <h2>Languages</h2>
+            <ul>
+              {languages.map((l) => <li><a href={`/lang/${l.code}`}>{l.name}</a></li>)}
+            </ul>
+          </nav>
+        )}
+        <div class="footer-col">
+          <h2>Site</h2>
+          <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/about">About</a></li>
+            <li><a href="/sitemap.xml">Sitemap</a></li>
+            <li><a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer">Data from YouTube</a></li>
+          </ul>
+        </div>
+      </div>
+      <p class="copyright">
+        © {year} RapidMov by <a href="https://github.com/AESMatias" target="_blank" rel="noopener" title="AESMatias on GitHub">AESMatias</a>. Not affiliated with YouTube or Google.
+      </p>
+    </footer>
+    <div class="page-dim" aria-hidden="true"></div>
   </body>
 </html>
 <style is:global>
   :root {
-    --color-primary: #ff0000;
-    --color-bg: #1a1a1a;
-    --color-text: #ffffff;
-    --color-card-bg: #282828;
-    --color-border: #444;
+    --color-primary: #ff1f1f;
+    --color-primary-dark: #b3000c;
+    --color-accent: #ff7a1a;
+    --color-bg: #0e0e11;
+    --color-surface: #17171c;
+    --color-card-bg: #1d1d23;
+    --color-text: #f5f5f7;
+    --color-muted: #a1a1aa;
+    --color-soft: #d4d4d8;
+    --color-border: rgba(255, 255, 255, 0.1);
+    --radius-sm: 8px;
+    --radius: 12px;
+    --radius-pill: 999px;
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.5rem;
+    --space-6: 2rem;
+    --space-7: 3rem;
+    --gutter: 16px;
+    --header-h: 60px;
+    color-scheme: dark;
   }
   html {
-    font-family: 'Roboto', system-ui, sans-serif;
-    background-color: var(--color-bg);
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background:
+      radial-gradient(1200px 500px at 50% -200px, rgba(255, 31, 31, 0.12), transparent 70%) no-repeat,
+      var(--color-bg);
     color: var(--color-text);
     overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+  *, *::before, *::after {
+    box-sizing: border-box;
   }
   body {
     margin: 0;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    line-height: 1.5;
   }
   h1, h2, h3 {
     color: var(--color-text);
     font-weight: 700;
   }
-  p {
-    font-weight: 400;
-  }
   a {
     text-decoration: none;
     color: inherit;
   }
-  button {
-    background-color: var(--color-primary);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: background-color 0.3s ease;
-    font-family: 'Roboto', sans-serif;
+  img {
+    max-width: 100%;
   }
-  button:hover {
-    background-color: #cc0000;
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+  .skip-link {
+    position: absolute;
+    left: var(--gutter);
+    top: -100px;
+    z-index: 100;
+    background: var(--color-text);
+    color: var(--color-bg);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+  }
+  .skip-link:focus {
+    top: var(--space-2);
+  }
+
+  /* Buttons */
+  .btn {
+    --btn-pad: 0.75rem 1.4rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--btn-pad);
+    border-radius: var(--radius-pill);
+    border: 1px solid transparent;
+    font: inherit;
+    font-weight: 700;
+    font-size: 1rem;
+    line-height: 1.2;
+    color: #fff;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, filter 0.18s ease;
+  }
+  .btn-sm {
+    --btn-pad: 0.45rem 0.9rem;
+    font-size: 0.82rem;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #ff3b30 0%, var(--color-primary) 40%, var(--color-primary-dark) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  }
+  .btn-primary:hover {
+    filter: brightness(1.08);
+  }
+  .btn-glass {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.16);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+  .btn-glass:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.28);
+  }
+  .btn:active {
+    filter: brightness(0.92);
+  }
+  .btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent);
+  }
+  .btn-icon {
+    width: 1.1em;
+    height: 1.1em;
+    flex: none;
+  }
+
+  /* Header */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(14, 14, 17, 0.72);
+    -webkit-backdrop-filter: saturate(160%) blur(14px);
+    backdrop-filter: saturate(160%) blur(14px);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .header-inner {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: var(--space-3) var(--gutter);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-6);
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex: none;
+  }
+  .brand-mark {
+    display: block;
+  }
+  .brand-word {
+    font-weight: 800;
+    font-size: 1.25rem;
+    letter-spacing: -0.03em;
+  }
+  .brand-word span {
+    color: var(--color-primary);
+  }
+  .lang-nav {
+    display: flex;
+    gap: var(--space-2);
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 2px;
+  }
+  .lang-nav::-webkit-scrollbar {
+    display: none;
+  }
+  .chip {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.85rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--color-soft);
+    background: rgba(255, 255, 255, 0.04);
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+  .chip:hover {
+    color: var(--color-text);
+    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .chip[aria-current='page'] {
+    color: #fff;
+    border-color: transparent;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  }
+  .chip-count {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+  }
+  .chip[aria-current='page'] .chip-count {
+    color: rgba(255, 255, 255, 0.8);
+  }
+  @media (max-width: 640px) {
+    .lang-nav {
+      flex: 0 0 calc(100% + 2 * var(--gutter));
+      margin: 0 calc(-1 * var(--gutter));
+      padding: 2px var(--gutter);
+    }
+  }
+
+  .main-wrap {
+    flex: 1 0 auto;
+  }
+
+  /* Page scaffolding */
+  .page {
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: var(--space-6) var(--gutter) var(--space-7);
+  }
+  .hero {
+    text-align: center;
+    max-width: 820px;
+    margin: var(--space-4) auto var(--space-7);
+  }
+  .page-title {
+    margin: 0 0 var(--space-3);
+    font-size: clamp(1.75rem, 1.1rem + 3.2vw, 3.4rem);
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+  .gradient-text {
+    background: linear-gradient(100deg, var(--color-primary) 10%, var(--color-accent) 90%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  ::selection {
+    background: rgba(255, 59, 48, 0.42);
+    color: #fff;
+  }
+  /* gradient text is transparent, give the selection a solid color */
+  .gradient-text::selection {
+    -webkit-text-fill-color: #fff;
+  }
+  .subtitle,
+  .empty-state {
+    color: var(--color-muted);
+    font-size: clamp(1rem, 0.95rem + 0.3vw, 1.15rem);
+    line-height: 1.6;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .empty-state {
+    text-align: center;
+    padding: var(--space-7) 0;
+  }
+  .video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+    gap: var(--space-5);
+  }
+  @media (max-width: 480px) {
+    .video-grid {
+      gap: var(--space-4);
+    }
+  }
+
+  /* dims the page around an open card (VideoCard) */
+  .page-dim {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(
+      circle at var(--dim-x, 50%) var(--dim-y, 50%),
+      transparent 0,
+      rgba(5, 5, 8, 0.03) 30%,
+      rgba(5, 5, 8, 0.07) 60%,
+      rgba(5, 5, 8, 0.12) 100%
+    );
+    transition: opacity 0.25s ease;
+  }
+  .card-open .page-dim {
+    opacity: 1;
+  }
+  /* a bit darker while scrolling the card text */
+  .page-dim::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    background: radial-gradient(
+      circle at var(--dim-x, 50%) var(--dim-y, 50%),
+      transparent 0,
+      rgba(5, 5, 8, 0.04) 30%,
+      rgba(5, 5, 8, 0.08) 60%,
+      rgba(5, 5, 8, 0.12) 100%
+    );
+    transition: opacity 0.3s ease;
+  }
+  .card-reading .page-dim::after {
+    opacity: 1;
+  }
+
+  /* Footer */
+  .site-footer {
+    margin-top: var(--space-7);
+    border-top: 1px solid var(--color-border);
+    background: linear-gradient(to bottom, var(--color-surface), var(--color-bg));
+    color: var(--color-soft);
+    font-size: 0.92rem;
+  }
+  .site-footer .brand-word {
+    color: #fff;
+  }
+  .footer-col a,
+  .copyright a {
+    color: var(--color-soft);
+  }
+  .copyright a {
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .footer-inner {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: var(--space-7) var(--gutter) var(--space-5);
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+  .footer-brand p {
+    margin: var(--space-3) 0 0;
+    max-width: 380px;
+  }
+  .footer-brand .updated {
+    display: inline-block;
+    margin-top: var(--space-4);
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-soft);
+  }
+  .updated time {
+    color: var(--color-text);
+    font-weight: 700;
+  }
+  .footer-col h2 {
+    margin: 0 0 var(--space-3);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-soft);
+  }
+  .footer-col ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-2);
+  }
+  .footer-col a:hover {
+    color: var(--color-text);
+  }
+  .copyright {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: var(--space-4) var(--gutter) var(--space-6);
+    border-top: 1px solid var(--color-border);
+    font-size: 0.82rem;
+  }
+  @media (max-width: 720px) {
+    .footer-inner {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    .footer-brand {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (max-width: 400px) {
+    .footer-inner {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
   }
 </style>
