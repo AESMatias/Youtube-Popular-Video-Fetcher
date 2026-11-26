@@ -2,6 +2,8 @@
 
 You are refreshing the site data and writing the video summaries. Run everything from the repo root.
 
+0. `./sync.sh pull`
+   Gets the database from the server, which keeps the real copy. Never skip this.
 1. `python3 pipeline.py collect`
    Needs `YOUTUBE_API_KEY` in the environment or in `.env`. A quota warning is fine: what was collected is saved.
 2. `python3 pipeline.py agent-export --limit 30`
@@ -25,7 +27,10 @@ You are refreshing the site data and writing the video summaries. Run everything
 4. `python3 pipeline.py agent-import`
    Check the rejected list, fix those entries in a new `agent/outbox.json` and import again if needed.
 5. `python3 pipeline.py export-site`
-6. `npm run build` and make sure it passes.
-7. Commit `src/data/site.json` and push.
+6. `./sync.sh push`
+   Uploads the database. The server keeps the last 12 copies in `/root/backups/videos-db`.
+7. `npm run build` and make sure it passes.
+8. Commit `src/data/site.json` with a short plain message (no co-author lines) and push.
+9. `ssh vps 'cd /root/Youtube-Popular-Video-Fetcher && ./deploy.sh'`
 
 `python3 pipeline.py stats` shows table counts, pending summaries and the last run.

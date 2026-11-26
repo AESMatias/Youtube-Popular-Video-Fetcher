@@ -4,7 +4,7 @@
 
 ## Cómo está armado
 
-1. `pipeline.py collect` baja los videos populares por idioma (`config.json`) y los guarda en `data/videos.db` (SQLite, no se sube a git).
+1. `pipeline.py collect` baja los videos populares por idioma (`config.json`) y los guarda en `data/videos.db` (SQLite, no se sube a git; la copia oficial vive en el server, ver `sync.sh`).
 2. `pipeline.py agent-export` deja en `agent/inbox.md` los videos nuevos sin resumen. Un agente los lee y escribe `agent/outbox.json` siguiendo `agent/AGENT.md`.
 3. `pipeline.py agent-import` y `pipeline.py export-site` generan `src/data/site.json`, que sí se sube a git y es lo único que lee el sitio.
 4. En el server, `./deploy.sh` hace pull, build y sirve `dist/` con nginx en Docker (`docker-compose.yml`, contenedor `videos-web`, puerto local 50000 detrás del túnel de Cloudflare).
@@ -34,5 +34,5 @@ ssh vps 'cd /root/Youtube-Popular-Video-Fetcher && ./deploy.sh'
 - YouTube bloquea transcripciones si se piden muchas seguidas (`IpBlocked`). Esas se reintentan en la próxima corrida.
 
 - Cron en el server para `deploy.sh` (sale solo si no hay cambios).
-- Respaldo de `data/videos.db`: si se pierde, se pierde el historial de videos ya vistos.
+- Conectar Google Drive en el server (`rclone config`, remoto `gdrive`) para tener copia fuera del server.
 - Redirecciones para URLs viejas de títulos con tildes y para `/page/N`.

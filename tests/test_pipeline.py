@@ -142,6 +142,10 @@ class PipelineTest(unittest.TestCase):
         s = self.q('SELECT * FROM summaries')[0]
         self.assertEqual((s['video_id'], s['seo_title'], s['source']), ('g1', 'Good', 'agent'))
         self.assertLessEqual(len(s['seo_description']), 1500)
+        # summarized video: text dropped but rows kept, the others untouched
+        t = {r['video_id']: r['text'] for r in self.q('SELECT * FROM transcripts')}
+        self.assertEqual((t['g1'], bool(t['g2'])), (None, True))
+        self.assertEqual(self.q("SELECT json FROM comments WHERE video_id='g1'")[0][0], '[]')
         self.assertEqual(pipeline.agent_export(self.conn, inbox, 60, 100), 2)
         self.assertEqual(pipeline.agent_export(self.conn, inbox, 1, 100), 1)
 

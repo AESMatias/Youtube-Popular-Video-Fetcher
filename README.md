@@ -39,14 +39,24 @@ Ya no hace falta clave de OpenAI.
 ## Flujo semanal (en el Mac)
 
 ```bash
+./sync.sh pull
 python3 pipeline.py collect [--top 30] [--regions-per-lang 3] [--langs es,en]
 python3 pipeline.py agent-export [--limit 60]
 # el agente lee agent/inbox.md y escribe agent/outbox.json siguiendo agent/AGENT.md
 python3 pipeline.py agent-import
 python3 pipeline.py export-site
-git commit src/data/site.json -m "datos de la semana"
+./sync.sh push
+git commit src/data/site.json -m "Update videos"
 git push
 ```
+
+### Dónde están los datos
+
+- La copia oficial de `data/videos.db` está en el servidor. `./sync.sh pull` la baja y `./sync.sh push` la sube. `push` se niega si el servidor tiene una corrida más nueva que la tuya (`--force` para pasar igual).
+- Cada `push` guarda la copia anterior comprimida en `/root/backups/videos-db` y deja las últimas 12.
+- `/root/backup-sites.sh` sube esas copias a Google Drive cuando el remoto `gdrive` de rclone está configurado (`rclone config` en el servidor).
+- `src/data/site.json` en git también es respaldo: cada semana guarda los videos y resúmenes que se publicaron.
+- Para que la base no crezca: al importar resúmenes se borran las transcripciones y comentarios de esos videos, que ya no hacen falta. `python3 pipeline.py prune` hace lo mismo y además compacta la base.
 
 Y luego en el servidor:
 

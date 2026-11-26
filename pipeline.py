@@ -367,12 +367,24 @@ def agent_import(conn, path):
                      (vid, value[0], value[1], 'agent', now()))
         accepted += 1
     conn.commit()
+    prune(conn)
     for vid, err in rejected:
         print('rejected %s: %s' % (vid, err))
     done = re.sub(r'\.json$', '', path) + '.%s.done.json' % datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S')
     os.rename(path, done)
     print('Accepted %d, rejected %d. Moved %s to %s' % (accepted, len(rejected), path, done))
     return accepted, len(rejected)
+
+
+def prune(conn):
+    # Transcripts and comments are only needed to write the summary. Keep the rows so they
+    # are never fetched again, drop the text so the db doesn't grow every week.
+    n = conn.execute('UPDATE transcripts SET text=NULL WHERE text IS NOT NULL '
+                     'AND video_id IN (SELECT video_id FROM summaries)').rowcount
+    n += conn.execute("UPDATE comments SET json='[]' WHERE json != '[]' "
+                      'AND video_id IN (SELECT video_id FROM summaries)').rowcount
+    conn.commit()
+    return n
 
 
 def export_site(conn, config, out):
@@ -498,6 +510,7 @@ def main(argv=None):
     l.add_argument('dir')
     l.add_argument('--top', type=int, default=d['top'])
     sub.add_parser('stats', help='show database counts')
+    sub.add_parser('prune', help='drop transcripts and comments of summarized videos, then compact the db')
     args = p.parse_args(argv)
     if not args.cmd:
         p.print_help()
@@ -526,6 +539,10 @@ def main(argv=None):
         import_legacy(connect(), config, args.dir, args.top)
     elif args.cmd == 'stats':
         stats(connect())
+    elif args.cmd == 'prune':
+        conn = connect()
+        print('Cleared %d rows' % prune(conn))
+        conn.execute('VACUUM')
     return 0
 
 
