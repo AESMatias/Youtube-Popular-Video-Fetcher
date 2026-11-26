@@ -60,6 +60,21 @@ const schema = { '@context': 'https://schema.org', '@graph': [breadcrumb, videoO
 <Layout title={`${pageTitle} - RapidMov`} description={metaDescription} image={video.thumbnail_url || undefined} type="video.other" lang={video.lang}>
   <script is:inline slot="head" type="application/ld+json" set:html={jsonLd(schema)} />
   <main class="container">
+    <div class="back-row">
+      <a href={`/lang/${video.lang}`} class="back-btn" id="back-btn">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        Back
+      </a>
+    </div>
+    <script is:inline>
+      // coming from this site: go back to the same scroll spot instead of reloading the list
+      document.getElementById('back-btn').addEventListener('click', (e) => {
+        if (document.referrer.startsWith(location.origin) && history.length > 1) {
+          e.preventDefault();
+          history.back();
+        }
+      });
+    </script>
     {video.thumbnail_url && (
       <div class="thumbnail-wrapper">
         <img src={video.thumbnail_url} alt="" aria-hidden="true" class="thumbnail-blur" width="1280" height="720" />
@@ -242,6 +257,34 @@ const schema = { '@context': 'https://schema.org', '@graph': [breadcrumb, videoO
   .description-text a:hover {
     color: #fff;
     text-decoration-color: currentColor;
+  }
+
+  .back-row {
+    width: 100%;
+    margin-bottom: var(--space-4);
+    text-align: left;
+  }
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 0.95rem 0.5rem 0.7rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.08);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    color: var(--color-text);
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: background-color 0.15s ease;
+  }
+  .back-btn:hover {
+    background: rgba(255, 255, 255, 0.14);
+  }
+  .back-btn:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
   }
 
   /* Collapsed text stays in the DOM, so screen readers still get all of it. */
