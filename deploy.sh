@@ -47,13 +47,6 @@ rm -rf dist.old
 mv dist.new dist
 rm -rf dist.old
 
-# old setup ran `astro preview` under pm2 on the same port; remove it once
-if command -v pm2 >/dev/null && pm2 describe astro-server >/dev/null 2>&1 9>&-; then
-    log "removing old pm2 process astro-server"
-    pm2 delete astro-server 9>&-
-    pm2 save --force 9>&-
-fi
-
 if docker compose version >/dev/null 2>&1; then
     compose() { docker compose "$@"; }
 else
